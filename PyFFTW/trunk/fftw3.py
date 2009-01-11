@@ -4,11 +4,11 @@ import os
 
 #__path = os.path.dirname('__file__')
 __librarypath = '/usr/lib/'
-fftwflags = {'measure':0, 'destroy input': 1, 'unaligned': 2,
+fftw_flags = {'measure':0, 'destroy input': 1, 'unaligned': 2,
                'conserve memory':4, 'exhaustive':8, 'preserve input': 16,
                'patient': 32, 'estimate': 64}
-realffts = {'halfcomplex r2c':0, 'halfcomplex c2r':1, 'discrete hartley' :2,
-              'realeven 00':3, 'realeven 01':4, 'realeven 10': 5
+realfft_method = {'halfcomplex r2c':0, 'halfcomplex c2r':1, 'discrete hartley':2,
+              'realeven 00':3, 'realeven 01':4, 'realeven 10':5,
               'realeven 11':6, 'realodd 00':7, 'realodd 01':8,
               'realodd 10':9, 'realodd 11':10}
 
@@ -27,10 +27,10 @@ __typedict_plans =    [('fftw_plan_dft_1d', (complex, complex, 1)),
                        ('fftw_plan_dft_r2c_2d', (float, complex, 2)),
                        ('fftw_plan_dft_r2c_3d', (float, complex, 3)),
                        ('fftw_plan_dft_r2c', (float, complex)),
-                       ('fftw_plan_dft_r2r_1d', (float, float, 1)),
-                       ('fftw_plan_dft_r2r_2d', (float, float, 2)),
-                       ('fftw_plan_dft_r2r_3d', (float, float, 3)),
-                       ('fftw_plan_dft_r2r', (float, float))]
+                       ('fftw_plan_r2r_1d', (float, float, 1)),
+                       ('fftw_plan_r2r_2d', (float, float, 2)),
+                       ('fftw_plan_r2r_3d', (float, float, 3)),
+                       ('fftw_plan_r2r', (float, float))]
 
 
 for name, types in __typedict_plans:
@@ -72,6 +72,18 @@ for name, types in __typedict_plans:
                                                        flags='contiguous'),\
                              ctypes.c_uint]
 
+execute = lib.fftw_execute
+execute.restype = None
+execute.argtypes = [ctypes.c_void_p]
+execute_dft = lib.fftw_execute_dft
+execute_dft.restype = None
+execute_dft.argtypes = [ctypes.c_void_p,\
+                        numpy.ctypeslib.ndpointer(flags='contiguous, writeable'),\
+                        numpy.ctypeslib.ndpointer(flags='contiguous,writeable')]
+
+destroy_plan = lib.fftw_destroy_plan
+execute.restype = None
+execute.argtypes = [ctypes.c_void_p]
 
 def select(inarray,outarray):
     if inarray.shape != outarray.shape:
@@ -95,32 +107,78 @@ def select(inarray,outarray):
         else:
             return getattr(lib, name), name, types
 
-#def __create_plan_multi_dim(inarray,outarray, direction='forward', flags='estimate'):
-    #func, name, types = select(inarray,outarray)
-    #intflags = 0
-    #for flag in flags:
-        #intflags +=
+def __create_complex_plan(inarray,outarray,direction,flags):
+    func, name, types = select(inarray,outarray)
 
+    if len(types) < 3:
+        return func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
+             inarray, outarray, direction, flags)
+    elif types[2] == 1:
+        return func(inarray.shape[0], inarray, outarray, direction, flags)
+    elif types[2] == 2:
+        return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
+                    direction, flags)
+    elif types[2] == 3:
+        return func(inarray.shape[0], inarray.shape[1], inarray.shape[2],\
+                    inarray, outarray, direction, flags)
+    else:
+        raise ValueError, 'the dimensions are not correct'
 
-    #if len(types) > 3:
-        #func(len(inarray.shape,
+def __create_real_plan(inarray,outarray,realtype,flags):
+    func, name, types = select(inarray,outarray)
 
+    if len(types) < 3:
+        return func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
+             inarray, outarray, numpy.asarray(realtype), flags)
+    elif types[2] == 1:
+        return func(inarray.shape[0], inarray, outarray, realtype[0], flags)
+    elif types[2] == 2:
+        return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
+                    realtype[0], realtype[1], flags)
+    elif types[2] == 3:
+        return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
+                    realtype[0], realtype[1], realtype[2], flags)
+    else:
+        raise ValueError, 'the dimensions are not correct'
+
+def create_plan(inarray, outarray, direction='forward', flags=['estimate'],
+                realtype=None):
+    if realtype != None:
+        return __create_real_plan(inarray,outarray,realtype,\
+                                  __cal_flag_value(flags))
+    else:
+        return __create_complex_plan(inarray,outarray, fft_direction[direction],\
+                                     __cal_flag_value(flags))
+
+        
+def __cal_flag_value(flags):
+    ret = 0
+    for f in flags:
+        ret += fftw_flags[f]
+    return ret
 
 class Plan(object):
-    def __init__(self, inarray=None, outarray=None, direction='forward', flags=['estimate'], create_plan=True):
-        self.__flags = flags
-        self.direction = __fftw_direction['direction']
+    def __init__(self, inarray=None, outarray=None, direction='forward', flags=['estimate'], realfft=None, create_plan=True):
+        self.flags = flags
+        self.direction = direction
+        self.real = realfft
         if create_plan:
-            if not inarray or not outarray:
-                raise 
+            if inarray == None and outarray  == None:
+                raise 'Need at least one array to create the plan'
+            elif inarray == None:
+                self.__create_plan(inarray,inarray)
+            elif outarray == None:
+                self.__create_plan(outarray,outarray)
+            else:
+                self.__create_plan(inarray,outarray)
 
     def __set_shape(self,shape):
         if len(shape)==1:
             self.ndim = 1
-            self.N = array([shape])
+            self.N = numpy.asarray(shape, dtype=int)
         elif len(shape) > 1:
             self.ndim = len(shape)
-            self.N = shape
+            self.N = numpy.asarray(shape, dtype=int)
         else:
             raise ValueError, 'shape must be at least one dimensional'
     
@@ -128,18 +186,27 @@ class Plan(object):
         return self.N
     shape = property(__get_shape, __set_shape)
 
-    def __get_flags(self):
-        ret = 0
-        for f in self.__flags:
-            ret += __fftwflags[f]
-        return ret
-
-    def __set_flags(self):
-        self.__flags = flags
-    flags = property(__get_flags,__set_flags)
-
     def __create_plan(self, inarray, outarray):
-        func, name, types = select(inarray, outarray)
-        self.fftype = name
-        if ,
+        self.plan = create_plan(inarray,outarray, direction=self.direction, flags=self.flags,realtype=self.real)
+        self.shape = inarray.shape
+
+    def _get_parameter(self):
+        return self.plan
+    _as_parameter_ = property(_get_parameter)
+
+    def __call__(self):
+        self.execute()
+
+    def execute(self):
+        execute(self)
+
+    def __del__(self):
+        destroy_plan(self)
+    
+    def execute_dft(self,inarray,outarray):
+        execute_dft(self,inarray,outarray)
+
+
+
+        
 
