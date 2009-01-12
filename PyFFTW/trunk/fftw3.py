@@ -72,6 +72,13 @@ for name, types in __typedict_plans:
                                                        flags='contiguous'),\
                              ctypes.c_uint]
 
+
+lib.fftw_malloc.restype = ctypes.c_void_p
+lib.fftw_malloc.argtype = [ctypes.c_int]
+def create_aligned_array(size, dtype='complex'):
+    p = lib.fftw_malloc(size*16)
+    return numpy.ndarray(shape=size,buffer=(ctypes.c_byte*16*size).from_address(p),dtype=dtype)
+
 execute = lib.fftw_execute
 execute.restype = None
 execute.argtypes = [ctypes.c_void_p]

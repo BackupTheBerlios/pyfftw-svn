@@ -1,11 +1,12 @@
 import numpy
 import pylab
+import ctypes
 from numpy.fft import fftshift, fft, ifft
 from scipy.fftpack import fft as sfft, ifft as sifft
 import fftw3
 import time
 
-N=2**15
+N=2**16
 repeats=500
 h = 0.1
 beta = 1
@@ -52,17 +53,35 @@ for i in xrange(repeats):
     gs3 = sfft(g3)
 to = time.time()
 print "scipy time %f s" %(to-ti)
+g4 = fftw3.fftw_malloc(len(f))
+gs4 = fftw3.fftw_malloc(len(f))
+g4*=0
+gs4 *=0
+fft_plan = fftw3.Plan(g4,gs4,flags=['measure'])
+ifft_plan = fftw3.Plan(gs4,g4,direction='backward',flags=['measure'])
+gs4[:] = numpy.exp(-fs[:]**2/0.02)+0.j
+ti = time.time()
 
+for i in xrange(repeats):
+    gs4 *= di
+    ifft_plan()
+    g4 /= N
+    fft_plan()
+to = time.time()
+print "fftw aligned time %f s" %(to-ti)
+del fft_plan,ifft_plan
 
 pylab.plot(ts,abs(g)**2,label='fftw')
 pylab.plot(ts,abs(g2)**2,label='numpy')
 pylab.plot(ts,abs(g3)**2,label='scipy')
+pylab.plot(ts,abs(g4)**2,label='fftw malloc')
 pylab.xlabel('time')
 pylab.legend()
 pylab.figure()
 pylab.plot(fs,abs(gs)**2,label='fftw')
 pylab.plot(fs,abs(gs2)**2,label='numpy')
 pylab.plot(fs,abs(gs3)**2,label='scipy')
+pylab.plot(fs,abs(gs4)**2,label='fftw malloc')
 pylab.xlabel('frequency')
 pylab.legend()
 pylab.show()
