@@ -1,6 +1,7 @@
 import numpy
 import ctypes
 import os
+from ctypes import pythonapi
 
 #__path = os.path.dirname('__file__')
 __librarypath = '/usr/lib/'
@@ -74,14 +75,69 @@ for name, types in __typedict_plans:
 
 
 lib.fftw_malloc.restype = ctypes.c_void_p
-lib.fftw_malloc.argtype = [ctypes.c_int]
-def create_aligned_array(size, dtype='complex'):
-    p = lib.fftw_malloc(size*16)
-    return numpy.ndarray(shape=size,buffer=(ctypes.c_byte*16*size).from_address(p),dtype=dtype)
+lib.fftw_malloc.argtypes = [ctypes.c_int]
+lib.fftw_free.restype = None
+lib.fftw_free.argtypes = [ctypes.c_void_p]
+
+_PyFile_AsFile = ctypes.pythonapi.PyFile_AsFile
+_PyFile_AsFile.argtypes = [ctypes.py_object]
+_PyFile_AsFile.restype = ctypes.c_void_p
+
+lib.fftw_export_wisdom_to_file.argtypes = [ctypes.c_void_p]
+lib.fftw_export_wisdom_to_file.restype = None
+
+def export_wisdom_to_file(filename):
+    fp = open(filename, 'a')
+    c_fp = _PyFile_AsFile(fp)
+    lib.fftw_export_wisdom_to_file(c_fp)
+    fp.close()
+
+lib.fftw_export_wisdom_to_string.argtypes = None
+lib.fftw_export_wisdom_to_string.restype = ctypes.c_char_p
+def export_wisdom_to_string():
+    return lib.fftw_export_wisdom_to_string()
+
+lib.fftw_import_wisdom_from_file.argtypes = [ctypes.c_void_p]
+lib.fftw_import_wisdom_from_file.restype = ctypes.c_int
+def import_wisdom_from_file(filename):
+    fp = open(filename,'r')
+    c_fp = _PyFile_AsFile(fp)
+    if lib.fftw_import_wisdom_from_file(c_fp):
+        pass
+    else:
+        raise IOError, "Could not read wisdom from file %s" %filename
+
+
+lib.fftw_import_wisdom_from_string.argtypes = [ctypes.c_char_p]
+lib.fftw_import_wisdom_from_string.restype = ctypes.c_int
+def import_wisdom_from_string(wisdom):
+    if lib.fftw_import_wisdom_from_string(wisdom):
+        pass
+    else:
+        raise "Could not read wisdom from string: %s" %wisdom
+
+lib.fftw_import_system_wisdom.restype = ctypes.c_int
+lib.fftw_import_system_wisdom.argtypes = None
+def import_system_wisdom():
+    if lib.fftw_import_system_wisdom():
+        pass
+    else:
+        raise IOError, "Could not read system wisdom. On GNU/Linux and Unix system wisdom is located in /etc/fftw/wisdom"
+
+forget_wisdom = lib.fftw_forget_wisdom
+forget_wisdom.restype = None
+forget_wisdom.argtype = None
+
+#def create_aligned_array(size, dtype='complex'):
+#    tmp = numpy.zeros(1,dtype=dtype)
+#    nbytes = tmp.nbytes
+#    p = lib.fftw_malloc(size*nbytes)
+#    return simdalignedarray(shape=size,buffer=(ctypes.c_byte*nbytes*size).from_address(p),dtype=dtype)
 
 execute = lib.fftw_execute
 execute.restype = None
 execute.argtypes = [ctypes.c_void_p]
+
 execute_dft = lib.fftw_execute_dft
 execute_dft.restype = None
 execute_dft.argtypes = [ctypes.c_void_p,\
@@ -89,14 +145,16 @@ execute_dft.argtypes = [ctypes.c_void_p,\
                         numpy.ctypeslib.ndpointer(flags='contiguous,writeable')]
 
 destroy_plan = lib.fftw_destroy_plan
-execute.restype = None
-execute.argtypes = [ctypes.c_void_p]
+
 
 def select(inarray,outarray):
+    """From a given input and output numpy array select the appropriate fftw3 plan to create.""" 
     if inarray.shape != outarray.shape:
         raise TypeError, 'Input array and output array must have the same shape'
-    elif inarray.dtype == outarray.dtype == float:
-        raise TypeError, 'At least one of the arrays has to be complex'
+    elif inarray.dtype != float and inarray.dtype != complex:
+        raise TypeError, "Input array has to be either floating point or complex"
+    elif outarray.dtype != float and outarray.dtype != complex:
+        raise TypeError, "Output array has to be either floating point or complex"
     i = 0
     while(i < len(__typedict_plans)):
         name, types = __typedict_plans[i]
@@ -106,7 +164,7 @@ def select(inarray,outarray):
         elif outarray.dtype != types[1]:
             i += 4
             continue
-        elif i in [3,7,11]:
+        elif i in [3,7,11,15]:
             return getattr(lib, name), name, types
         elif len(inarray.shape) != types[2]:
             i += 1
@@ -115,36 +173,40 @@ def select(inarray,outarray):
             return getattr(lib, name), name, types
 
 def __create_complex_plan(inarray,outarray,direction,flags):
+    """Internal function to create complex fft plan given an input and output 
+    numpy array and the direction and flags integers"""
     func, name, types = select(inarray,outarray)
 
     if len(types) < 3:
         return func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
-             inarray, outarray, direction, flags)
+             inarray, outarray, direction, flags), name
     elif types[2] == 1:
-        return func(inarray.shape[0], inarray, outarray, direction, flags)
+        return func(inarray.shape[0], inarray, outarray, direction, flags),name
     elif types[2] == 2:
         return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
-                    direction, flags)
+                    direction, flags), name
     elif types[2] == 3:
         return func(inarray.shape[0], inarray.shape[1], inarray.shape[2],\
-                    inarray, outarray, direction, flags)
+                    inarray, outarray, direction, flags), name
     else:
         raise ValueError, 'the dimensions are not correct'
 
 def __create_real_plan(inarray,outarray,realtype,flags):
+    """Internal function to create real fft plan given an input and output 
+    numpy array and the realtype and flags integers"""
     func, name, types = select(inarray,outarray)
 
     if len(types) < 3:
         return func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
-             inarray, outarray, numpy.asarray(realtype), flags)
+             inarray, outarray, numpy.asarray(realtype), flags), name
     elif types[2] == 1:
-        return func(inarray.shape[0], inarray, outarray, realtype[0], flags)
+        return func(inarray.shape[0], inarray, outarray, realtype[0], flags), name
     elif types[2] == 2:
         return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
-                    realtype[0], realtype[1], flags)
+                    realtype[0], realtype[1], flags), name
     elif types[2] == 3:
         return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
-                    realtype[0], realtype[1], realtype[2], flags)
+                    realtype[0], realtype[1], realtype[2], flags), name
     else:
         raise ValueError, 'the dimensions are not correct'
 
@@ -156,7 +218,6 @@ def create_plan(inarray, outarray, direction='forward', flags=['estimate'],
     else:
         return __create_complex_plan(inarray,outarray, fft_direction[direction],\
                                      __cal_flag_value(flags))
-
         
 def __cal_flag_value(flags):
     ret = 0
@@ -194,7 +255,7 @@ class Plan(object):
     shape = property(__get_shape, __set_shape)
 
     def __create_plan(self, inarray, outarray):
-        self.plan = create_plan(inarray,outarray, direction=self.direction, flags=self.flags,realtype=self.real)
+        self.plan, self.type_plan = create_plan(inarray,outarray, direction=self.direction, flags=self.flags,realtype=self.real)
         self.shape = inarray.shape
 
     def _get_parameter(self):
@@ -213,7 +274,27 @@ class Plan(object):
     def execute_dft(self,inarray,outarray):
         execute_dft(self,inarray,outarray)
 
+class simdalignedarray(numpy.ndarray):
+    #plan=None
+    def __new__(cls, shape, dtype=complex, plan=None):
+        #try:
+            #length = sum(shape)
+        #except:
+            #length = shape
+        tmp = numpy.zeros(shape,dtype=dtype)
+        #nbytes = tmp.nbytes
+        p = lib.fftw_malloc(tmp.nbytes)
+        b = (ctypes.c_byte*tmp.nbytes)(p)
+        obj = numpy.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
+        #obj.plan = plan
+        return obj
 
-
-        
-
+    def __del__(self):
+        if self.base == None:
+           lib.fftw_free(self.ctypes.data)
+        else:
+            pass
+        #if self.plan is not None:
+        #    destroy_plan(self.plan)
+        #lib.fftw_free(self.ctypes.data)
+    
