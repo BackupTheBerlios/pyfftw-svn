@@ -8,7 +8,7 @@ __librarypath = '/usr/lib/'
 fftw_flags = {'measure':0, 'destroy input': 1, 'unaligned': 2,
                'conserve memory':4, 'exhaustive':8, 'preserve input': 16,
                'patient': 32, 'estimate': 64}
-realfft_method = {'halfcomplex r2c':0, 'halfcomplex c2r':1, 'discrete hartley':2,
+realfft_type = {'halfcomplex r2c':0, 'halfcomplex c2r':1, 'discrete hartley':2,
               'realeven 00':3, 'realeven 01':4, 'realeven 10':5,
               'realeven 11':6, 'realodd 00':7, 'realodd 01':8,
               'realodd 10':9, 'realodd 11':10}
@@ -37,14 +37,14 @@ __typedict_plans =    [('fftw_plan_dft_1d', (complex, complex, 1)),
 for name, types in __typedict_plans:
     val = getattr(lib, name)
     val.restype = ctypes.c_void_p
-    if types[0] or types[1] == complex:
+    if types[0] == complex or types[1] == complex:
         if len(types) >2:
             val.argtypes = [ctypes.c_int for i in range(types[2])] + \
                            [numpy.ctypeslib.ndpointer(dtype=types[0],\
                                 ndim=types[2], flags='contiguous, writeable'),\
                             numpy.ctypeslib.ndpointer(dtype=types[1],\
                                 ndim=types[2], flags='contiguous,writeable'),\
-                            ctypes.c_uint]
+                            ctypes.c_int, ctypes.c_uint]
         else:
             val.argtypes = [ctypes.c_int, numpy.ctypeslib.ndpointer(dtype=int,\
                                 ndim=1,flags='contiguous'),\
@@ -52,7 +52,7 @@ for name, types in __typedict_plans:
                                 flags='contiguous, writeable'), \
                              numpy.ctypeslib.ndpointer(dtype=types[1], \
                                 flags='contiguous,writeable'),\
-                             ctypes.c_uint]
+                             ctypes.c_int, ctypes.c_uint]
     else:
         if len(types) > 2:
             val.argtypes = [ctypes.c_int for i in range(types[2])] + \
@@ -61,7 +61,7 @@ for name, types in __typedict_plans:
                             numpy.ctypeslib.ndpointer(dtype=types[1],\
                                 ndim=types[2], flags='contiguous,writeable')]+\
                             [ctypes.c_int for i in range(types[2])] +\
-                            [ctypes.c_int]
+                            [ctypes.c_uint]
         else:
             val.argtypes = [ctypes.c_int, numpy.ctypeslib.ndpointer(dtype=int,\
                                 ndim=1,flags='contiguous'),\
@@ -195,6 +195,7 @@ def __create_real_plan(inarray,outarray,realtype,flags):
     """Internal function to create real fft plan given an input and output 
     numpy array and the realtype and flags integers"""
     func, name, types = select(inarray,outarray)
+    print name
 
     if len(types) < 3:
         return func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
@@ -205,20 +206,21 @@ def __create_real_plan(inarray,outarray,realtype,flags):
         return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
                     realtype[0], realtype[1], flags), name
     elif types[2] == 3:
-        return func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
+        return func(inarray.shape[0], inarray.shape[1],inarray.shape[2], inarray, outarray,\
                     realtype[0], realtype[1], realtype[2], flags), name
     else:
         raise ValueError, 'the dimensions are not correct'
 
-def create_plan(inarray, outarray, direction='forward', flags=['estimate'],
-                realtype=None):
-    if realtype != None:
-        return __create_real_plan(inarray,outarray,realtype,\
-                                  __cal_flag_value(flags))
+def _create_plan(inarray, outarray, direction='forward', flags=['estimate'],
+                realtypes=None):
+    if realtypes != None:
+        return __create_real_plan(inarray,outarray,\
+                [realfft_type[r] for r in realtypes], __cal_flag_value(flags))
     else:
-        return __create_complex_plan(inarray,outarray, fft_direction[direction],\
-                                     __cal_flag_value(flags))
-        
+        return __create_complex_plan(inarray,outarray,\
+                fft_direction[direction], __cal_flag_value(flags))
+
+
 def __cal_flag_value(flags):
     ret = 0
     for f in flags:
@@ -226,10 +228,10 @@ def __cal_flag_value(flags):
     return ret
 
 class Plan(object):
-    def __init__(self, inarray=None, outarray=None, direction='forward', flags=['estimate'], realfft=None, create_plan=True):
+    def __init__(self, inarray=None, outarray=None, direction='forward', flags=['estimate'], realtypes=None, create_plan=True):
         self.flags = flags
         self.direction = direction
-        self.real = realfft
+        self.realtypes = realtypes
         if create_plan:
             if inarray == None and outarray  == None:
                 raise 'Need at least one array to create the plan'
@@ -255,7 +257,7 @@ class Plan(object):
     shape = property(__get_shape, __set_shape)
 
     def __create_plan(self, inarray, outarray):
-        self.plan, self.type_plan = create_plan(inarray,outarray, direction=self.direction, flags=self.flags,realtype=self.real)
+        self.plan, self.type_plan = _create_plan(inarray,outarray, direction=self.direction, flags=self.flags,realtypes=self.realtypes)
         self.shape = inarray.shape
 
     def _get_parameter(self):
@@ -291,7 +293,7 @@ class simdalignedarray(numpy.ndarray):
 
     def __del__(self):
         if self.base == None:
-           lib.fftw_free(self.ctypes.data)
+           lib.fftw_free(self)
         else:
             pass
         #if self.plan is not None:
