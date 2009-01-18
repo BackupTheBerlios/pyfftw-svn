@@ -1,6 +1,9 @@
 import unittest
 import fftw3
 import numpy
+import propagation
+import os
+from subprocess import Popen, PIPE
 
 N = 512
 plans = fftw3.__typedict_plans
@@ -25,26 +28,34 @@ class ProductTestCase(unittest.TestCase):
             self.failUnless(func is getattr(fftw3.lib, plantype), "wrong library function for type %s" %plantype)
 
     def testWisdom(self):
-        inputa = fftw3.simdalignedarray(1024,complex)
-        outputa = fftw3.simdalignedarray(1024,complex)
+        fftw3.forget_wisdom()
+        inputa = fftw3.fftw_array(1024,complex)
+        outputa = fftw3.fftw_array(1024,complex)
         plan = fftw3.Plan(inputa,outputa,flags=['patient'])
         soriginal = fftw3.export_wisdom_to_string()
-        fftw3.forget_wisdom()
         fftw3.import_wisdom_from_string(soriginal)
-        snew = fftw3.export_wisdom_to_string()
-        self.failUnless(snew == soriginal, "Wisdom loaded from string not the same as created wisdom")
         fftw3.export_wisdom_to_file('test.wisdom')
         fftw3.forget_wisdom()
         fftw3.import_wisdom_from_file('test.wisdom')
-        snew = fftw3.export_wisdom_to_string()
-        self.failUnless(snew == soriginal, "Wisdom loaded from file not the same as created wisdom")
+        os.remove('test.wisdom')
+        del inputa
+        del outputa
         
-
-
-        
-
+    def testPropagation(self):
+        Ns = [2**i for i in range(10,15)]
+        repeats = 2000
+        epsilon = 1e-3
+        times = []
+        for Nn in Ns:
+            t,A,f,B, ti = propagation.fftw_propagation(Nn,repeats)
+            nt,nA, nf, nB, nti = propagation.numpy_propagation(Nn,repeats)
+            st,sA, sf, sB, sti = propagation.scipy_propagation(Nn,repeats)
+            times.append((ti, nti, sti))
+            self.failUnless(sum(abs(A)**2-abs(nA)**2)< epsilon, "Propagation of fftw3 and numpy gives different results")
+        print "Benchmark:"
+        print "   N   fftw3   numpy   scipy"
+        for i in range(len(Ns)):
+            print "%5d  %5.2f    %5.2f   %5.2f" %(Ns[i],times[i][0], times[i][1], times[i][2])
 
 
 if __name__ == '__main__': unittest.main()
-
-
