@@ -1,14 +1,7 @@
 import numpy
 import ctypes
-#import os
+from lib import lib, __typedict_plans
 
-#__path = os.path.dirname('__file__')
-__librarypath = '/usr/lib/'
-lib = numpy.ctypeslib.load_library('libfftw3.so', __librarypath)
-
-from wisdom import export_wisdom_to_file, export_wisdom_to_string,\
-        import_wisdom_from_string, import_wisdom_from_file, \
-        import_system_wisdom, forget_wisdom
 
 fftw_flags = {'measure':0,
               'destroy input': 1,
@@ -33,115 +26,15 @@ realfft_type = {'halfcomplex r2c':0,
 
 
 fft_direction = {'forward' : -1, 'backward': 1}
-lib = numpy.ctypeslib.load_library('libfftw3.so', __librarypath)
-
-__typedict_plans =    [('fftw_plan_dft_1d', (complex, complex, 1)),
-                       ('fftw_plan_dft_2d', (complex, complex, 2)),
-                       ('fftw_plan_dft_3d', (complex, complex, 3)),
-                       ('fftw_plan_dft', (complex, complex)),
-                       ('fftw_plan_dft_c2r_1d', (complex, float, 1)),
-                       ('fftw_plan_dft_c2r_2d', (complex, float, 2)),
-                       ('fftw_plan_dft_c2r_3d', (complex, float, 3)),
-                       ('fftw_plan_dft_c2r', (complex, float)),
-                       ('fftw_plan_dft_r2c_1d', (float, complex, 1)),
-                       ('fftw_plan_dft_r2c_2d', (float, complex, 2)),
-                       ('fftw_plan_dft_r2c_3d', (float, complex, 3)),
-                       ('fftw_plan_dft_r2c', (float, complex)),
-                       ('fftw_plan_r2r_1d', (float, float, 1)),
-                       ('fftw_plan_r2r_2d', (float, float, 2)),
-                       ('fftw_plan_r2r_3d', (float, float, 3)),
-                       ('fftw_plan_r2r', (float, float))]
-
-# set the return and argument types on the plan functions
-for name, types in __typedict_plans:
-    val = getattr(lib, name)
-    val.restype = ctypes.c_void_p
-    if types[0] == complex or types[1] == complex:
-        if len(types) >2:
-            val.argtypes = [ctypes.c_int for i in range(types[2])] +\
-                           [numpy.ctypeslib.ndpointer(dtype=types[0],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[1],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-
-                            ctypes.c_int, ctypes.c_uint]
-        else:
-            val.argtypes = [ctypes.c_int,
-                            numpy.ctypeslib.ndpointer(dtype=int, ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[0],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[1],
-                                                      flags='contiguous, '\
-                                                            'writeable,'\
-                                                            'aligned'),
-                            ctypes.c_int, ctypes.c_uint]
-    else:
-        if len(types) > 2:
-            val.argtypes = [ctypes.c_int for i in range(types[2])] +\
-                           [numpy.ctypeslib.ndpointer(dtype=types[0],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[1],
-                                                      ndim=types[2],
-                                                      flags='contiguous,'\
-                                                            'writeable, '\
-                                                            'aligned')] +\
-                            [ctypes.c_int for i in range(types[2])] +\
-                            [ctypes.c_uint]
-        else:
-            val.argtypes = [ctypes.c_int,
-                            numpy.ctypeslib.ndpointer(dtype=int,
-                                                      ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[0],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=types[1],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            numpy.ctypeslib.ndpointer(dtype=int, ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            ctypes.c_uint]
-
-
-#malloc and free
-lib.fftw_malloc.restype = ctypes.c_void_p
-lib.fftw_malloc.argtypes = [ctypes.c_int]
-lib.fftw_free.restype = None
-lib.fftw_free.argtypes = [ctypes.c_void_p]
 
 def create_fftw_array(shape, dtype='complex'):
     return fftw_array(shape=shape,dtype=dtype)
 
-lib.fftw_execute.restype = None
-lib.fftw_execute.argtypes = [ctypes.c_void_p]
 def execute(plan):
     """Execute fftw-plan, i.e. perform Fourier transform on the arrays given
     when the plan was created"""
     lib.fftw_execute(plan)
 
-lib.fftw_execute_dft.restype = None
-lib.fftw_execute_dft.argtypes = [ctypes.c_void_p,
-                        numpy.ctypeslib.ndpointer(flags='aligned, contiguous, '\
-                                                        'writeable'),\
-                        numpy.ctypeslib.ndpointer(flags='aligned, contiguous, '\
-                                                        'writeable')]
 def guru_execute_dft(plan, inarray, outarray):
         """Guru interface: perform Fourier transform on two arrays,
         outarray=fft(inarray) using the given plan. Important: This function
@@ -153,8 +46,6 @@ def guru_execute_dft(plan, inarray, outarray):
         """
         lib.fftw_execute_dft(plan, inarray, outarray)
 
-lib.fftw_destroy_plan.restype = None
-lib.fftw_destroy_plan.argtypes = [ctypes.c_void_p]
 def destroy_plan(plan):
     """Delete the given plan"""
     if isinstance(plan,Plan):
@@ -166,20 +57,20 @@ def select(inarray,outarray):
     """From a given input and output numpy array select the appropriate
     fftw3 plan to create.""" 
     if inarray.shape != outarray.shape:
-        if inarray.dtype = outarray.dtype:
+        if inarray.dtype == outarray.dtype:
             raise TypeError, "Input array and output array must have the same "\
                              "shape if they have the same dtype"
-        elif inarray.dtype = complex and outarray.dtype = float:
+        elif inarray.dtype == complex and outarray.dtype == float:
             inshape = list(outarray.shape)
             inshape[-1] = inshape[-1]/2 + 1
-            if not inarray.shape is tuple(inshape):
+            if inarray.shape != tuple(inshape):
                 raise TypeError, "For complex to real transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
-         elif inarray.dtype = float and outarray.dtype = complex:
+        elif inarray.dtype == float and outarray.dtype == complex:
             outshape = list(inarray.shape)
             outshape[-1] = outshape[-1]/2 + 1
-            if not inarray.shape is tuple(inshape):
+            if outarray.shape != tuple(outshape):
                 raise TypeError, "For real to complex transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
@@ -369,6 +260,8 @@ class Plan(object):
                                                  flags=self.flags,
                                                  realtypes=self.realtypes)
         self.shape = inarray.shape
+        self.inarray = inarray
+        self.outarray = outarray
 
     def _get_parameter(self):
         return self.plan
@@ -387,6 +280,8 @@ class Plan(object):
     def __del__(self):
         destroy_plan(self)
 
+
+
     def guru_execute_dft(self,inarray,outarray):
         """Guru interface: perform Fourier transform on two given arrays,
         outarray=fft(inarray). Important: This method does not perform any
@@ -397,25 +292,25 @@ class Plan(object):
         """
         guru_execute_dft(self,inarray,outarray)
 
-
 class fftw_array(numpy.ndarray):
     #plan=None
-    def __new__(cls, shape, dtype=complex, plan=None):
+    def __new__(cls, shape, dtype=complex, plan=[]):
         tmp = numpy.zeros(shape,dtype=dtype)
         #nbytes = tmp.nbytes
         p = lib.fftw_malloc(tmp.nbytes)
         b = (ctypes.c_byte*tmp.nbytes)(p)
         obj = numpy.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
-        del tmp, b
-        #obj.plan = plan
+        del tmp,b
+        obj.c_data = p
+        obj.plan = plan
         return obj
 
     def __del__(self):
-        if self.base == None:
-           lib.fftw_free(self)
+        if hasattr(self, 'c_data'):
+            print "del"
+            lib.fftw_free(self.c_data)
+            #if self.plan:
+            #    raise Exception, "You cannot delete the array before the plans "\
+            #                     "which contain the array"
         else:
             pass
-        #if self.plan is not None:
-        #    destroy_plan(self.plan)
-        #lib.fftw_free(self.ctypes.data)
-    

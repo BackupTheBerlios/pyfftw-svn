@@ -6,5 +6,6 @@ setup(name='PyFFTW3',
       version='0.1',
       description='Python bindings to the FFTW3 C-library',
       author='Jochen Schroeder',
-      packages=['fftw3.py']
+      packages=['fftw3']
+      package_dir={'fftw3':'src/fftw3'}
      )
