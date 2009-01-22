@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typeDict
 import ctypes
-from lib import lib, _typelist
+from _lib import lib, _typelist
 
 
 fftw_flags = {'measure':0,
@@ -205,7 +205,16 @@ def _cal_flag_value(flags):
 
 class Plan(object):
     """Object representing a fftw plan used to execute Fourier transforms in
-    fftw"""
+    fftw
+    
+    Attributes:
+        shape       --  the shape of the input and output arrays, i.e. the FFT
+        flags       --  a list of the fft flags used in the planning
+        direction   --  the direction of the FFT
+        ndim        --  the dimensionality of the FFT
+        inarray     --  the input array
+        outarray    --  the output array
+        """
     def __init__(self, inarray=None, outarray=None, direction='forward',
                  flags=['estimate'], realtypes=None, create_plan=True):
         """Initialize the fftw plan. 
@@ -221,7 +230,7 @@ class Plan(object):
             flags       --  list of fftw-flags to be used in planning
                             (default=['estimate'])
             realtypes   --  list of fft-types for real-to-real ffts, this
-                            needs to be given if both input and output 
+                            needs to be given if both input and output
                             arrays are real (default=None)
             create_plan --  weather to actually create the plan (default=True)
             """
@@ -242,11 +251,11 @@ class Plan(object):
     def __set_shape(self,shape):
         if len(shape)==1:
             self.ndim = 1
-            self.N = np.asarray(shape, dtype=int)
+            self.N = tuple(shape)
 
         elif len(shape) > 1:
             self.ndim = len(shape)
-            self.N = np.asarray(shape, dtype=int)
+            self.N = tuple(shape)
         else:
             raise ValueError, 'shape must be at least one dimensional'
 
@@ -287,7 +296,7 @@ class Plan(object):
         checks on the array shape and alignment for performance reasons. It is
         therefore crucial to only provide arrays with the same shape, dtype and
         alignment as the arrays used for planning, failure to do so can lead to
-        unexpected behaviour and even python segfaulting
+        unexpected behaviour and possibly python segfaulting
         """
         guru_execute_dft(self,inarray,outarray)
 

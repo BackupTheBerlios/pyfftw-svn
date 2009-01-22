@@ -8,7 +8,7 @@ import fftw3l
 from numpy.fft import fft,ifft,fftshift
 import numpy as np
 from scipy.fftpack import fft as sfft, ifft as sifft
-import propagation
+from pylab import imread
 import os
 
 h = 0.01
@@ -146,8 +146,7 @@ class ProductTestCase(unittest.TestCase):
             del inputa
             del outputa
             i+=1
-            
-        
+
     def testPropagation(self):
         #can only test for fftw3 because longdouble and single are not both implemented for scipy.fft and numpy.fft
         Ns = [2**i for i in range(10,15)]
@@ -173,6 +172,20 @@ class ProductTestCase(unittest.TestCase):
                                                        times[i][1], \
                                                        times[i][2], \
                                                        times[i][3])
+
+    def test2D(self):
+        im = imread('einstein.png')
+        im = im[:,:,1]
+        a = zeros(im.shape, dtype=im.dtype)
+        b = zeros(im.shape[0],im.shape[1]/2+1,dtype=np.typeDict['singlecomplex'])
+        p = fftw3f.Plan(a,b,'forward')
+        ip = fftw3f.Plan(b,a,'backward')
+        p()
+        b/=np.prod(a.shape)
+        ip()
+        self.failUnless(sum(a)-sum(im) < epsilon, "2D fft and ifft did not "\
+                                                  "reproduce the same image")
+
 
 
 if __name__ == '__main__': unittest.main()
