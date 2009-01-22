@@ -90,26 +90,26 @@ for name, types in _typelist:
                             ctypes.c_uint]
 
 #malloc and free
-lib.fftw_malloc.restype = ctypes.c_void_p
-lib.fftw_malloc.argtypes = [ctypes.c_int]
-lib.fftw_free.restype = None
-lib.fftw_free.argtypes = [ctypes.c_void_p]
+lib.$libname$_malloc.restype = ctypes.c_void_p
+lib.$libname$_malloc.argtypes = [ctypes.c_int]
+lib.$libname$_free.restype = None
+lib.$libname$_free.argtypes = [ctypes.c_void_p]
 
 #executing arrays
-lib.fftw_execute.restype = None
-lib.fftw_execute.argtypes = [ctypes.c_void_p]
+lib.$libname$_execute.restype = None
+lib.$libname$_execute.argtypes = [ctypes.c_void_p]
 
 #guru execution
-lib.fftw_execute_dft.restype = None
-lib.fftw_execute_dft.argtypes = [ctypes.c_void_p,
+lib.$libname$_execute_dft.restype = None
+lib.$libname$_execute_dft.argtypes = [ctypes.c_void_p,
                         ctypeslib.ndpointer(flags='aligned, contiguous, '\
                                                         'writeable'),\
                         ctypeslib.ndpointer(flags='aligned, contiguous, '\
                                                         'writeable')]
 
 #destroy plans
-lib.fftw_destroy_plan.restype = None
-lib.fftw_destroy_plan.argtypes = [ctypes.c_void_p]
+lib.$libname$_destroy_plan.restype = None
+lib.$libname$_destroy_plan.argtypes = [ctypes.c_void_p]
 
 #wisdom
 PyFile_AsFile = pythonapi.PyFile_AsFile
@@ -117,25 +117,25 @@ PyFile_AsFile.argtypes = [ctypes.py_object]
 PyFile_AsFile.restype = ctypes.c_void_p
 
 #export to file
-lib.fftw_export_wisdom_to_file.argtypes = [ctypes.c_void_p]
-lib.fftw_export_wisdom_to_file.restype = None
+lib.$libname$_export_wisdom_to_file.argtypes = [ctypes.c_void_p]
+lib.$libname$_export_wisdom_to_file.restype = None
 
 #export to string
-lib.fftw_export_wisdom_to_string.argtypes = None
-lib.fftw_export_wisdom_to_string.restype = ctypes.c_char_p
+lib.$libname$_export_wisdom_to_string.argtypes = None
+lib.$libname$_export_wisdom_to_string.restype = ctypes.c_char_p
 
 #import from file
-lib.fftw_import_wisdom_from_file.argtypes = [ctypes.c_void_p]
-lib.fftw_import_wisdom_from_file.restype = ctypes.c_int
+lib.$libname$_import_wisdom_from_file.argtypes = [ctypes.c_void_p]
+lib.$libname$_import_wisdom_from_file.restype = ctypes.c_int
 
 #import from string
-lib.fftw_import_wisdom_from_string.argtypes = [ctypes.c_char_p]
-lib.fftw_import_wisdom_from_string.restype = ctypes.c_int
+lib.$libname$_import_wisdom_from_string.argtypes = [ctypes.c_char_p]
+lib.$libname$_import_wisdom_from_string.restype = ctypes.c_int
 
 #import system wisdom
-lib.fftw_import_system_wisdom.restype = ctypes.c_int
-lib.fftw_import_system_wisdom.argtypes = None
+lib.$libname$_import_system_wisdom.restype = ctypes.c_int
+lib.$libname$_import_system_wisdom.argtypes = None
 
 #forget wisdom
-lib.fftw_forget_wisdom.restype = None
-lib.fftw_forget_wisdom.argtype = None
+lib.$libname$_forget_wisdom.restype = None
+lib.$libname$_forget_wisdom.argtype = None

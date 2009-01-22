@@ -3,7 +3,7 @@ from lib import lib, PyFile_AsFile
 def export_wisdom_to_file(filename):
     """Export accumulated wisdom to file given by the filename"""
     fp = open(filename, 'a')
-    c_fp = _PyFile_AsFile(fp)
+    c_fp = PyFile_AsFile(fp)
     lib.$libname$_export_wisdom_to_file(c_fp)
     fp.close()
 
@@ -14,7 +14,7 @@ def export_wisdom_to_string():
 def import_wisdom_from_file(filename):
     """Imports wisdom from the file given by the filename"""
     fp = open(filename,'r')
-    c_fp = _PyFile_AsFile(fp)
+    c_fp = PyFile_AsFile(fp)
     if lib.$libname$_import_wisdom_from_file(c_fp):
         pass
     else:
