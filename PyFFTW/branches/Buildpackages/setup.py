@@ -53,6 +53,6 @@ setup(name='PyFFTW3',
       description='Python bindings to the FFTW3 C-library',
       author='Jochen Schroeder',
       packages=check_libs(packages_0),
-      package_dir={'fftw3':'/src/templates/','fftw3f':'/src/templates/','fftw3l':'/src/templates/'},
+      package_dir={'fftw3':'src/templates/','fftw3f':'src/templates/','fftw3l':'src/templates/'},
       cmdclass = {"build_py": build_from_templates}
      )
