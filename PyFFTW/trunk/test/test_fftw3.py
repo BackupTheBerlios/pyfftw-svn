@@ -1,61 +1,191 @@
+import sys
+sys.path.append('../build/lib')
 import unittest
+import time
 import fftw3
-import numpy
-import propagation
+import fftw3f
+import fftw3l
+from numpy.fft import fft,ifft,fftshift
+import numpy as np
+from scipy.fftpack import fft as sfft, ifft as sifft
+from pylab import imread
 import os
-from subprocess import Popen, PIPE
 
+h = 0.01
+beta = 1
 N = 512
-plans = fftw3.__typedict_plans
+libs = [fftw3, fftw3f, fftw3l]
+
+_complex = ['complex','singlecomplex','longcomplex']
+_float = ['double','single','longdouble']
+
+
+def fftw_propagation_aligned(N,repeats, lib, dtype):
+    t = np.linspace(-5,5,N)
+    dt = t[1]-t[0]
+    f = np.linspace(-1/dt/2.,1/dt/2.,N)
+    f = fftshift(f)
+    t = fftshift(t)
+    farray = lib.AlignedArray(f.shape,dtype=dtype)
+    tarray = lib.AlignedArray(t.shape,dtype=dtype)
+    fftplan = lib.Plan(tarray,farray,'forward')
+    ifftplan = lib.Plan(farray,tarray,'backward')
+    farray[:] = 0
+    tarray[:] = 0
+    tarray += np.exp(-t**2/0.5)
+    dispersion = np.exp(-1.j*h*beta*f)
+    ti = time.time()
+    for i in xrange(repeats):
+        fftplan()
+        farray *= dispersion/N
+        ifftplan()
+    to = time.time()-ti
+    return fftshift(t),fftshift(tarray),fftshift(f),fftshift(farray), to
+
+def fftw_propagation(N,repeats,lib, dtype):
+    t = np.linspace(-5,5,N)
+    dt = t[1]-t[0]
+    f = np.linspace(-1/dt/2.,1/dt/2.,N)
+    f = fftshift(f)
+    t = fftshift(t)
+    farray = zeros(f.shape,dtype=dtype)
+    tarray = zeros(t.shape,dtype=dtype)
+    fftplan = lib.Plan(tarray,farray,'forward')
+    ifftplan = lib.Plan(farray,tarray,'backward')
+    farray[:] = 0
+    tarray[:] = 0
+    tarray += np.exp(-t**2/0.5)
+    dispersion = np.exp(-1.j*h*beta*f)
+    ti = time.time()
+    for i in xrange(repeats):
+        fftplan()
+        farray *= dispersion/N
+        ifftplan()
+    to = time.time()-ti
+    return fftshift(t),fftshift(tarray),fftshift(f),fftshift(farray), to
+
+
+def np_propagation(N,repeats,dtype):
+    t = np.linspace(-5,5,N)
+    dt = t[1]-t[0]
+    f = np.linspace(-1/dt/2.,1/dt/2.,N)
+    f = fftshift(f)
+    t = fftshift(t)
+    tarray = np.zeros(t.shape,dtype)
+    tarray += np.exp(-t**2/0.5)
+    farray = np.zeros(tarray.shape,dtype)
+    dispersion = np.zeros(tarray.shape,dtype)
+    dispersion += np.exp(-1.j*h*beta*f)
+    ti = time.time()
+    for i in xrange(repeats):
+        farray = fft(tarray)
+        farray *= dispersion
+        tarray = ifft(farray)
+    to = time.time()-ti
+    return fftshift(t),fftshift(tarray),fftshift(f),fftshift(farray),to
+
+
+def scipy_propagation(N,repeats, dtype):
+    t = np.linspace(-5,5,N)
+    dt = t[1]-t[0]
+    f = np.linspace(-1/dt/2.,1/dt/2.,N)
+    f = fftshift(f)
+    t = fftshift(t)
+    tarray = np.zeros(t.shape,dtype)
+    tarray += np.exp(-t**2/0.5)
+    farray = np.zeros(tarray.shape,dtype)
+    dispersion = np.zeros(tarray.shape,dtype)
+    dispersion += np.exp(-1.j*h*beta*f)
+    ti = time.time()
+    for i in xrange(repeats):
+        farray = sfft(tarray)
+        farray *= dispersion
+        tarray = sifft(tarray)
+    to = time.time()-ti
+    return fftshift(t),fftshift(tarray),fftshift(f),fftshift(farray),to
+
 
 class ProductTestCase(unittest.TestCase):
 
     def testSelect(self):
-        for plan in plans:
-            if len(plan[1])>2:
-                plantype,(intype, outtype,length) = plan
-                shape = numpy.random.randint(2,5,length)
-                inputa = numpy.zeros(shape=shape, dtype=intype)
-                outputa = numpy.zeros(shape=shape, dtype=outtype)
-            else:
-                plantype, (intype,outtype) = plan
-                shape = numpy.random.randint(2,5,numpy.random.randint(4,8))
-                length = len(shape)
-                inputa = numpy.zeros(shape=shape, dtype=intype)
-                outputa = numpy.zeros(shape=shape, dtype=outtype)
-            func, name, types = fftw3.select(inputa,outputa)
-            self.failUnless(name == plantype, "select returned a wrong type for input array type=%s, output array type=%s, and dimension = %d" %(inputa.dtype, outputa.dtype, length))
-            self.failUnless(func is getattr(fftw3.lib, plantype), "wrong library function for type %s" %plantype)
+        for lib in libs:
+            for plan in lib._typelist:
+                if len(plan[1])>2:
+                    plantype,(intype, outtype,length) = plan
+                    shape = np.random.randint(2,5,length)
+                    inputa = np.zeros(shape=shape, dtype=intype)
+                    outputa = np.zeros(shape=shape, dtype=outtype)
+                else:
+                    plantype, (intype,outtype) = plan
+                    shape = np.random.randint(2,5,np.random.randint(4,8))
+                    length = len(shape)
+                    inputa = np.zeros(shape=shape, dtype=intype)
+                    outputa = np.zeros(shape=shape, dtype=outtype)
+                func, name, types = lib._select(inputa,outputa)
+                self.failUnless(name == plantype, "%s: select returned a "\
+                                "wrong type for input array type=%s, output "\
+                                "array type=%s, and dimension = %d" \
+                                    %(lib, inputa.dtype, outputa.dtype, length))
+                self.failUnless(func is getattr(lib.lib, plantype), "%s: "\
+                                "wrong library function for type %s"\
+                                                    %(lib,plantype))
 
     def testWisdom(self):
-        fftw3.forget_wisdom()
-        inputa = fftw3.fftw_array(1024,complex)
-        outputa = fftw3.fftw_array(1024,complex)
-        plan = fftw3.Plan(inputa,outputa,flags=['patient'])
-        soriginal = fftw3.export_wisdom_to_string()
-        fftw3.import_wisdom_from_string(soriginal)
-        fftw3.export_wisdom_to_file('test.wisdom')
-        fftw3.forget_wisdom()
-        fftw3.import_wisdom_from_file('test.wisdom')
-        os.remove('test.wisdom')
-        del inputa
-        del outputa
-        
+        i=0
+        for lib in libs:
+            lib.forget_wisdom()
+            inputa = lib.AlignedArray(1024,np.typeDict[_complex[i]])
+            outputa = lib.AlignedArray(1024,np.typeDict[_complex[i]])
+            plan = lib.Plan(inputa,outputa,flags=['patient'])
+            soriginal = lib.export_wisdom_to_string()
+            lib.import_wisdom_from_string(soriginal)
+            lib.export_wisdom_to_file('test.wisdom')
+            lib.forget_wisdom()
+            lib.import_wisdom_from_file('test.wisdom')
+            os.remove('test.wisdom')
+            del inputa
+            del outputa
+            i+=1
+
     def testPropagation(self):
+        #can only test for fftw3 because longdouble and single are not both implemented for scipy.fft and numpy.fft
         Ns = [2**i for i in range(10,15)]
         repeats = 2000
         epsilon = 1e-3
         times = []
         for Nn in Ns:
-            t,A,f,B, ti = propagation.fftw_propagation(Nn,repeats)
-            nt,nA, nf, nB, nti = propagation.numpy_propagation(Nn,repeats)
-            st,sA, sf, sB, sti = propagation.scipy_propagation(Nn,repeats)
-            times.append((ti, nti, sti))
-            self.failUnless(sum(abs(A)**2-abs(nA)**2)< epsilon, "Propagation of fftw3 and numpy gives different results")
-        print "Benchmark:"
-        print "   N   fftw3   numpy   scipy"
+            t,A,f,B, ti = fftw_propagation_aligned(Nn,repeats, fftw2, _complex[0])
+            ft,fA,ff,fB, fti = fftw_propagation_aligned(Nn,repeats, lib, _complex[0])
+            nt,nA, nf, nB, nti = np_propagation(Nn,repeats, _complex[0])
+            st,sA, sf, sB, sti = scipy_propagation(Nn,repeats, _complex[0])
+            times.append((fti, ti,nti, sti))
+            self.failUnless(sum(abs(A)**2-abs(nA)**2)< epsilon, "Propagation "\
+                            "of fftw3 and numpy gives "\
+                            "different results")
+            self.failUnless(sum(abs(fA)**2-abs(nA)**2)< epsilon, "Propagation "\
+                            "of aligned fftw3 and numpy gives "\
+                            "different results")
+        print "Benchmark: %s" %lib
+        print "   N   fftw3 fftw3_aligned   numpy   scipy"
         for i in range(len(Ns)):
-            print "%5d  %5.2f    %5.2f   %5.2f" %(Ns[i],times[i][0], times[i][1], times[i][2])
+            print "%5d  %5.2f  %5.2f  %5.2f   %5.2f" %(Ns[i],times[i][0],\
+                                                       times[i][1], \
+                                                       times[i][2], \
+                                                       times[i][3])
+
+    def test2D(self):
+        im = imread('einstein.png')
+        im = im[:,:,1]
+        a = zeros(im.shape, dtype=im.dtype)
+        b = zeros(im.shape[0],im.shape[1]/2+1,dtype=np.typeDict['singlecomplex'])
+        p = fftw3f.Plan(a,b,'forward')
+        ip = fftw3f.Plan(b,a,'backward')
+        p()
+        b/=np.prod(a.shape)
+        ip()
+        self.failUnless(sum(a)-sum(im) < epsilon, "2D fft and ifft did not "\
+                                                  "reproduce the same image")
+
 
 
 if __name__ == '__main__': unittest.main()

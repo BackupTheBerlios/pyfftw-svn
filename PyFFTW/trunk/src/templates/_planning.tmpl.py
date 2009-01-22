@@ -1,6 +1,7 @@
-import numpy
+import numpy as np
+from numpy import typeDict
 import ctypes
-from lib import lib, __typedict_plans
+from _lib import lib, _typelist
 
 
 fftw_flags = {'measure':0,
@@ -27,13 +28,13 @@ realfft_type = {'halfcomplex r2c':0,
 
 fft_direction = {'forward' : -1, 'backward': 1}
 
-def create_fftw_array(shape, dtype='complex'):
-    return fftw_array(shape=shape,dtype=dtype)
+def create_AlignedArray(shape, dtype=typeDict['$complex$']):
+    return AlignedArray(shape=shape,dtype=dtype)
 
 def execute(plan):
     """Execute fftw-plan, i.e. perform Fourier transform on the arrays given
     when the plan was created"""
-    lib.fftw_execute(plan)
+    lib.$libname$_execute(plan)
 
 def guru_execute_dft(plan, inarray, outarray):
         """Guru interface: perform Fourier transform on two arrays,
@@ -44,45 +45,45 @@ def guru_execute_dft(plan, inarray, outarray):
         failure to do so can lead to unexpected behaviour and even python
         segfaulting.
         """
-        lib.fftw_execute_dft(plan, inarray, outarray)
+        lib.$libname$_execute_dft(plan, inarray, outarray)
 
 def destroy_plan(plan):
     """Delete the given plan"""
     if isinstance(plan,Plan):
         del plan
     else:
-        lib.fftw_destroy_plan(plan)
+        lib.$libname$_destroy_plan(plan)
 
 def select(inarray,outarray):
-    """From a given input and output numpy array select the appropriate
+    """From a given input and output np array select the appropriate
     fftw3 plan to create.""" 
     if inarray.shape != outarray.shape:
         if inarray.dtype == outarray.dtype:
             raise TypeError, "Input array and output array must have the same "\
                              "shape if they have the same dtype"
-        elif inarray.dtype == complex and outarray.dtype == float:
+        elif inarray.dtype == typeDict['$complex$'] and outarray.dtype == typeDict['$float$']:
             inshape = list(outarray.shape)
             inshape[-1] = inshape[-1]/2 + 1
             if inarray.shape != tuple(inshape):
                 raise TypeError, "For complex to real transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
-        elif inarray.dtype == float and outarray.dtype == complex:
+        elif inarray.dtype == typeDict['$float$'] and outarray.dtype == typeDict['$complex$']:
             outshape = list(inarray.shape)
             outshape[-1] = outshape[-1]/2 + 1
             if outarray.shape != tuple(outshape):
                 raise TypeError, "For real to complex transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
-    if inarray.dtype != float and inarray.dtype != complex:
+    if inarray.dtype != typeDict['$float$'] and inarray.dtype != typeDict['$complex$']:
         raise TypeError, "Input array has to be either floating point or"\
                          " complex"
-    elif outarray.dtype != float and outarray.dtype != complex:
+    elif outarray.dtype != typeDict['$float$'] and outarray.dtype != typeDict['$complex$']:
         raise TypeError, "Output array has to be either floating point "\
                          "or complex"
     i = 0
-    while(i < len(__typedict_plans)):
-        name, types = __typedict_plans[i]
+    while(i < len(_typelist)):
+        name, types = _typelist[i]
         if inarray.dtype != types[0]:
             i += 8
             continue
@@ -99,18 +100,18 @@ def select(inarray,outarray):
 
 def _create_complex_plan(inarray, outarray, direction, flags):
     """Internal function to create complex fft plan given an input and output
-    numpy array and the direction and flags integers"""
+    np array and the direction and flags integers"""
     func, name, types = select(inarray,outarray)
     #this is necessary because the r2c and c2r transforms always use the
     #shape of the larger array (the real one)
-    if numpy.prod(inarray.shape) < numpy.prod(outarray.shape):
+    if np.prod(inarray.shape) < np.prod(outarray.shape):
         shape = outarray.shape
     else:
         shape = inarray.shape
 
     if len(types) < 3:
         plan = func(len(shape),
-                    numpy.asarray(shape, dtype=int),
+                    np.asarray(shape, dtype=int),
                     inarray, outarray, direction, flags)
         if plan == None:
             raise Exception, "Error creating fftw plan %s for the given "\
@@ -145,12 +146,12 @@ def _create_complex_plan(inarray, outarray, direction, flags):
 
 def _create_real_plan(inarray, outarray, realtype, flags):
     """Internal function to create real fft plan given an input and output 
-    numpy array and the realtype and flags integers"""
+    np array and the realtype and flags integers"""
     func, name, types = select(inarray,outarray)
 
     if len(types) < 3:
-        plan = func(len(inarray.shape), numpy.asarray(inarray.shape,dtype=int),\
-             inarray, outarray, numpy.asarray(realtype), flags)
+        plan = func(len(inarray.shape), np.asarray(inarray.shape,dtype=int),\
+             inarray, outarray, np.asarray(realtype), flags)
         if plan == None:
             raise Exception, "Error creating fftw plan %s for the given "\
                              "parameters" %name
@@ -186,7 +187,7 @@ def _create_real_plan(inarray, outarray, realtype, flags):
 def _create_plan(inarray, outarray, direction='forward', flags=['estimate'],
                 realtypes=None):
     """Internal function to create a complex fft plan given an input and output
-    numpy array and the direction and flags integers"""
+    np array and the direction and flags integers"""
     if realtypes != None:
         return _create_real_plan(inarray,outarray,\
                 [realfft_type[r] for r in realtypes], _cal_flag_value(flags))
@@ -204,7 +205,16 @@ def _cal_flag_value(flags):
 
 class Plan(object):
     """Object representing a fftw plan used to execute Fourier transforms in
-    fftw"""
+    fftw
+    
+    Attributes:
+        shape       --  the shape of the input and output arrays, i.e. the FFT
+        flags       --  a list of the fft flags used in the planning
+        direction   --  the direction of the FFT
+        ndim        --  the dimensionality of the FFT
+        inarray     --  the input array
+        outarray    --  the output array
+        """
     def __init__(self, inarray=None, outarray=None, direction='forward',
                  flags=['estimate'], realtypes=None, create_plan=True):
         """Initialize the fftw plan. 
@@ -220,7 +230,7 @@ class Plan(object):
             flags       --  list of fftw-flags to be used in planning
                             (default=['estimate'])
             realtypes   --  list of fft-types for real-to-real ffts, this
-                            needs to be given if both input and output 
+                            needs to be given if both input and output
                             arrays are real (default=None)
             create_plan --  weather to actually create the plan (default=True)
             """
@@ -241,11 +251,11 @@ class Plan(object):
     def __set_shape(self,shape):
         if len(shape)==1:
             self.ndim = 1
-            self.N = numpy.asarray(shape, dtype=int)
+            self.N = tuple(shape)
 
         elif len(shape) > 1:
             self.ndim = len(shape)
-            self.N = numpy.asarray(shape, dtype=int)
+            self.N = tuple(shape)
         else:
             raise ValueError, 'shape must be at least one dimensional'
 
@@ -280,37 +290,28 @@ class Plan(object):
     def __del__(self):
         destroy_plan(self)
 
-
-
     def guru_execute_dft(self,inarray,outarray):
         """Guru interface: perform Fourier transform on two given arrays,
         outarray=fft(inarray). Important: This method does not perform any
         checks on the array shape and alignment for performance reasons. It is
         therefore crucial to only provide arrays with the same shape, dtype and
         alignment as the arrays used for planning, failure to do so can lead to
-        unexpected behaviour and even python segfaulting
+        unexpected behaviour and possibly python segfaulting
         """
         guru_execute_dft(self,inarray,outarray)
 
-class fftw_array(numpy.ndarray):
-    #plan=None
-    def __new__(cls, shape, dtype=complex, plan=[]):
-        tmp = numpy.zeros(shape,dtype=dtype)
-        #nbytes = tmp.nbytes
-        p = lib.fftw_malloc(tmp.nbytes)
+class AlignedArray(np.ndarray):
+    def __new__(cls, shape, dtype=typeDict['$complex$']):
+        tmp = np.zeros(shape,dtype=dtype)
+        p = lib.$libname$_malloc(tmp.nbytes)
         b = (ctypes.c_byte*tmp.nbytes)(p)
-        obj = numpy.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
+        obj = np.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
         del tmp,b
         obj.c_data = p
-        obj.plan = plan
         return obj
 
     def __del__(self):
         if hasattr(self, 'c_data'):
-            print "del"
-            lib.fftw_free(self.c_data)
-            #if self.plan:
-            #    raise Exception, "You cannot delete the array before the plans "\
-            #                     "which contain the array"
+            lib.$libname$_free(self.c_data)
         else:
             pass
