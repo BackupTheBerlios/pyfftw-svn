@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import typeDict
 import ctypes
 from lib import lib, _typelist
 
@@ -27,7 +28,7 @@ realfft_type = {'halfcomplex r2c':0,
 
 fft_direction = {'forward' : -1, 'backward': 1}
 
-def create_AlignedArray(shape, dtype=$complex$):
+def create_AlignedArray(shape, dtype=typeDict['$complex$']):
     return AlignedArray(shape=shape,dtype=dtype)
 
 def execute(plan):
@@ -60,24 +61,24 @@ def select(inarray,outarray):
         if inarray.dtype == outarray.dtype:
             raise TypeError, "Input array and output array must have the same "\
                              "shape if they have the same dtype"
-        elif inarray.dtype == $complex$ and outarray.dtype == $float$:
+        elif inarray.dtype == typeDict['$complex$'] and outarray.dtype == typeDict['$float$']:
             inshape = list(outarray.shape)
             inshape[-1] = inshape[-1]/2 + 1
             if inarray.shape != tuple(inshape):
                 raise TypeError, "For complex to real transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
-        elif inarray.dtype == $float$ and outarray.dtype == $complex$:
+        elif inarray.dtype == typeDict['$float$'] and outarray.dtype == typeDict['$complex$']:
             outshape = list(inarray.shape)
             outshape[-1] = outshape[-1]/2 + 1
             if outarray.shape != tuple(outshape):
                 raise TypeError, "For real to complex transforms the complex "\
                                  "array must be of shape (n1 x n2 x...x "\
                                  "(n-1)/2 +1"
-    if inarray.dtype != $float$ and inarray.dtype != $complex$:
+    if inarray.dtype != typeDict['$float$'] and inarray.dtype != typeDict['$complex$']:
         raise TypeError, "Input array has to be either floating point or"\
                          " complex"
-    elif outarray.dtype != $float$ and outarray.dtype != $complex$:
+    elif outarray.dtype != typeDict['$float$'] and outarray.dtype != typeDict['$complex$']:
         raise TypeError, "Output array has to be either floating point "\
                          "or complex"
     i = 0
@@ -291,7 +292,7 @@ class Plan(object):
         guru_execute_dft(self,inarray,outarray)
 
 class AlignedArray(np.ndarray):
-    def __new__(cls, shape, dtype=$complex$):
+    def __new__(cls, shape, dtype=typeDict['$complex$']):
         tmp = np.zeros(shape,dtype=dtype)
         p = lib.$libname$_malloc(tmp.nbytes)
         b = (ctypes.c_byte*tmp.nbytes)(p)

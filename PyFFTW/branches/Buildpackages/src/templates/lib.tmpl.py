@@ -1,32 +1,32 @@
 import ctypes
 from ctypes import pythonapi, util
-from numpy import ctypeslib
+from numpy import ctypeslib, typeDict
 
 
 lib = ctypes.cdll.LoadLibrary(util.find_library('$library$'))
 
-_typelist =    [('$libname$_plan_dft_1d', ($complex$, $complex$, 1)),
-                       ('$libname$_plan_dft_2d', ($complex$, $complex$, 2)),
-                       ('$libname$_plan_dft_3d', ($complex$, $complex$, 3)),
-                       ('$libname$_plan_dft', ($complex$, $complex$)),
-                       ('$libname$_plan_dft_c2r_1d', ($complex$, $float$, 1)),
-                       ('$libname$_plan_dft_c2r_2d', ($complex$, $float$, 2)),
-                       ('$libname$_plan_dft_c2r_3d', ($complex$, $float$, 3)),
-                       ('$libname$_plan_dft_c2r', ($complex$, $float$)),
-                       ('$libname$_plan_dft_r2c_1d', ($float$, $complex$, 1)),
-                       ('$libname$_plan_dft_r2c_2d', ($float$, $complex$, 2)),
-                       ('$libname$_plan_dft_r2c_3d', ($float$, $complex$, 3)),
-                       ('$libname$_plan_dft_r2c', ($float$, $complex$)),
-                       ('$libname$_plan_r2r_1d', ($float$, $float$, 1)),
-                       ('$libname$_plan_r2r_2d', ($float$, $float$, 2)),
-                       ('$libname$_plan_r2r_3d', ($float$, $float$, 3)),
-                       ('$libname$_plan_r2r', ($float$, $float$))]
+_typelist =    [('$libname$_plan_dft_1d', (typeDict['$complex$'], typeDict['$complex$'], 1)),
+                       ('$libname$_plan_dft_2d', (typeDict['$complex$'], typeDict['$complex$'], 2)),
+                       ('$libname$_plan_dft_3d', (typeDict['$complex$'], typeDict['$complex$'], 3)),
+                       ('$libname$_plan_dft', (typeDict['$complex$'], typeDict['$complex$'])),
+                       ('$libname$_plan_dft_c2r_1d', (typeDict['$complex$'], typeDict['$float$'], 1)),
+                       ('$libname$_plan_dft_c2r_2d', (typeDict['$complex$'], typeDict['$float$'], 2)),
+                       ('$libname$_plan_dft_c2r_3d', (typeDict['$complex$'], typeDict['$float$'], 3)),
+                       ('$libname$_plan_dft_c2r', (typeDict['$complex$'], typeDict['$float$'])),
+                       ('$libname$_plan_dft_r2c_1d', (typeDict['$float$'], typeDict['$complex$'], 1)),
+                       ('$libname$_plan_dft_r2c_2d', (typeDict['$float$'], typeDict['$complex$'], 2)),
+                       ('$libname$_plan_dft_r2c_3d', (typeDict['$float$'], typeDict['$complex$'], 3)),
+                       ('$libname$_plan_dft_r2c', (typeDict['$float$'], typeDict['$complex$'])),
+                       ('$libname$_plan_r2r_1d', (typeDict['$float$'], typeDict['$float$'], 1)),
+                       ('$libname$_plan_r2r_2d', (typeDict['$float$'], typeDict['$float$'], 2)),
+                       ('$libname$_plan_r2r_3d', (typeDict['$float$'], typeDict['$float$'], 3)),
+                       ('$libname$_plan_r2r', (typeDict['$float$'], typeDict['$float$']))]
 
 # set the return and argument types on the plan functions
 for name, types in _typelist:
     val = getattr(lib, name)
     val.restype = ctypes.c_void_p
-    if types[0] == $complex$ or types[1] == $complex$:
+    if types[0] == typeDict['$complex$'] or types[1] == typeDict['$complex$']:
         if len(types) >2:
             val.argtypes = [ctypes.c_int for i in range(types[2])] +\
                            [ctypeslib.ndpointer(dtype=types[0],
