@@ -82,8 +82,8 @@ def select(inarray,outarray):
         raise TypeError, "Output array has to be either floating point "\
                          "or complex"
     i = 0
-    while(i < len(__typedict_plans)):
-        name, types = __typedict_plans[i]
+    while(i < len(_typelist)):
+        name, types = _typelist[i]
         if inarray.dtype != types[0]:
             i += 8
             continue
