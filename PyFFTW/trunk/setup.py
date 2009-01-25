@@ -51,10 +51,12 @@ class build_from_templates(build_py):
 setup(name='PyFFTW3',
       version='0.1a',
       description='Python bindings to the FFTW3 C-library',
+      long_description='PyFFTW provide bindings to access the FFTW3 C-library (http://www.fftw.org) from Python',
       author='Jochen Schroeder',
-      email='cycomanic@gmail.com',
+      author_email='jschrod@berlios.de',
       url = 'pyfftw.berlios.de',
       packages=check_libs(packages_0),
       package_dir={'fftw3':'src/templates/','fftw3f':'src/templates/','fftw3l':'src/templates/'},
-      cmdclass = {"build_py": build_from_templates}
+      cmdclass = {"build_py": build_from_templates},
+      license ='GPL v3'
      )
