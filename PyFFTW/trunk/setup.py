@@ -49,7 +49,7 @@ class build_from_templates(build_py):
             return create_source_from_template(module_file, outfile, package, package.replace('3',''), _complex_typedict[package], _float_typedict[package])
 
 setup(name='PyFFTW3',
-      version='0.1',
+      version='0.1a',
       description='Python bindings to the FFTW3 C-library',
       author='Jochen Schroeder',
       email='cycomanic@gmail.com',
