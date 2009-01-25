@@ -15,10 +15,11 @@ Constants:
                        transforms (see the fftw documentation for a 
                        more detailed description).
 """
-from _wisdom import export_wisdom_to_file, export_wisdom_to_string,\
+from wisdom import export_wisdom_to_file, export_wisdom_to_string,\
         import_wisdom_from_string, import_wisdom_from_file, \
         import_system_wisdom, forget_wisdom
 
-from _planning import AlignedArray, create_AlignedArray,\
+from planning import AlignedArray, create_AlignedArray,\
         execute, guru_execute_dft, destroy_plan,\
-        Plan, fftw_flags, fft_direction, realfft_type
+        Plan, fftw_flags, fft_direction, realfft_type, \
+        print_plan, fprint_plan

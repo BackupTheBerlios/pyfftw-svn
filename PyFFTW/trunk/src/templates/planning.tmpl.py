@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typeDict
 import ctypes
-from _lib import lib, _typelist
+from lib import lib, _typelist, PyFile_AsFile
 
 
 fftw_flags = {'measure':0,
@@ -203,6 +203,17 @@ def _cal_flag_value(flags):
         ret += fftw_flags[f]
     return ret
 
+def print_plan(plan):
+    """Print a nerd-readable version of the plan to stdout"""
+    lib.$libname$_print_plan(plan)
+
+def fprint_plan(plan, filename):
+    """Print a nerd-readable version of the plan to the given filename"""
+    fp = open(filename, 'w')
+    c_fp = PyFile_AsFile(fp)
+    lib.$libname$_fprint_plan(plan, c_fp)
+    fp.close()
+
 class Plan(object):
     """Object representing a fftw plan used to execute Fourier transforms in
     fftw
@@ -306,6 +317,7 @@ class AlignedArray(np.ndarray):
         p = lib.$libname$_malloc(tmp.nbytes)
         b = (ctypes.c_byte*tmp.nbytes)(p)
         obj = np.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
+        obj[:] = 0
         del tmp,b
         obj.c_data = p
         return obj

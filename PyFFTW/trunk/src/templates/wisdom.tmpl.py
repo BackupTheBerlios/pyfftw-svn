@@ -1,4 +1,4 @@
-from _lib import lib, PyFile_AsFile
+from lib import lib, PyFile_AsFile
 
 def export_wisdom_to_file(filename):
     """Export accumulated wisdom to file given by the filename"""

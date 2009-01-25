@@ -63,7 +63,45 @@ arrays in the planning process, thus, if you use planning strategies
 other than 'estimate' the arrays are going to be overwritten and have to 
 be reinitialized. 
 
+!IMPORTANT! 
+Because the plan uses pointers to the data of the arrays you cannot perform
+operations on the arrays that change the data pointer. Therefore
+
+a = zeros(1024, dtype=complex)
+p = plan(a,b)
+a = a+10
+p()
+
+does not work, i.e. the a object references different memory, however the 
+Fourier transform will be performed on the original memory (the plan actually 
+contains a reference to the orgininal data (p.inarray), otherwise this 
+operation could even result in a python segfault).
+
+Aligned memory:
+
 On many platforms using the SIMD units for part of the floating point
 arithmetic significantly improves performance. FFTW can make use of the 
 SIMD operations, however the arrays have to be specifically aligned in memory.
-Although on some systems 
+PyFFTW provides a numpy.ndarray subclass called AlignedArray which uses the 
+fftw_malloc to allocate the memory such that the memory is aligned for most
+efficient SIMD operations. Note that the same precautions as above apply, 
+i.e. creating an aligned array and then doing something like a=a+1 will
+result in new memory allocated by python which might not be aligned.
+
+PyFFTW interface naming conventions:
+All exposed fftw-functions do have the same names as the C-functions with the
+leading fftw_ striped from the name.
+
+Direct access to the C-functions is available by importing lib.lib, the usual
+precautions for using C-functions from Python apply. 
+
+Advanced and Guru interface:
+Currently only the execute_dft function from the fftw guru and advanced 
+interface is exposed.
+It is explicitly name guru_execute_dft. You should only use
+these if you know what you're doing, as no checking is done on these functions.
+
+
+Thanks:
+Finally I would like to the Matteo Frigo and Stephen G. Johnson for creating 
+the outstanding fftw3 library.
