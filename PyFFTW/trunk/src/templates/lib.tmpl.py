@@ -1,3 +1,21 @@
+#   This file is part of PyFFTW.
+#
+#    Copyright (C) 2009 Jochen Schroeder
+#    Email: jschrod@berlios.de
+#
+#    PyFFTW is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    PyFFTW is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with PyFFTW.  If not, see <http://www.gnu.org/licenses/>.
+
 import ctypes
 from ctypes import pythonapi, util
 from numpy import ctypeslib, typeDict
@@ -22,72 +40,91 @@ _typelist =    [('$libname$_plan_dft_1d', (typeDict['$complex$'], typeDict['$com
                        ('$libname$_plan_r2r_3d', (typeDict['$float$'], typeDict['$float$'], 3)),
                        ('$libname$_plan_r2r', (typeDict['$float$'], typeDict['$float$']))]
 
+
+def set_argtypes(val, types):
+    if types[0] == typeDict['$complex$'] and types[1] == typeDict['$complex$']:
+        set_argtypes_c2c(val,types)
+    elif types[0] == typeDict['$complex$'] or types[1] == typeDict['$complex$']:
+        set_argtypes_c2r(val,types)
+    else:
+        set_argtypes_r2r(val,types)
+
+def set_argtypes_c2c(val,types):
+    if len(types) >2:
+        val.argtypes = [ctypes.c_int for i in range(types[2])] +\
+                       [ctypeslib.ndpointer(dtype=types[0],ndim=types[2], \
+                                            flags='contiguous, writeable, '\
+                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1], ndim=types[2],\
+                                            flags='contiguous, writeable, '\
+                                                  'aligned'),
+                        ctypes.c_int, ctypes.c_uint]
+    else:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,\
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                 ' writeable, '\
+                                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1],flags='contiguous, '\
+                                                                 'writeable,'\
+                                                                 'aligned'),
+                        ctypes.c_int, ctypes.c_uint]
+
+def set_argtypes_c2r(val,types):
+    if len(types) >2:
+        val.argtypes = [ctypes.c_int for i in range(types[2])] +\
+                       [ctypeslib.ndpointer(dtype=types[0],ndim=types[2], \
+                                            flags='contiguous, writeable, '\
+                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1], ndim=types[2],\
+                                            flags='contiguous, writeable, '\
+                                                  'aligned'),
+                        ctypes.c_uint]
+    else:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,\
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                 ' writeable, '\
+                                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1],flags='contiguous, '\
+                                                                 'writeable,'\
+                                                                 'aligned'),
+                        ctypes.c_uint]
+
+def set_argtypes_r2r(val, types):
+    if len(types) > 2:
+        val.argtypes = [ctypes.c_int for i in range(types[2])] +\
+                       [ctypeslib.ndpointer(dtype=types[0], ndim=types[2],
+                                            flags='contiguous, writeable, '\
+                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1], ndim=types[2],
+                                            flags='contiguous, writeable, '\
+                                                  'aligned')] +\
+                        [ctypes.c_int for i in range(types[2])] +\
+                        [ctypes.c_uint]
+    else:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                  'writeable, '\
+                                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=types[1], flags='contiguous,'\
+                                                                  'writeable, '\
+                                                                  'aligned'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous, aligned'),
+                        ctypes.c_uint]
+
+
+
 # set the return and argument types on the plan functions
 for name, types in _typelist:
     val = getattr(lib, name)
     val.restype = ctypes.c_void_p
-    if types[0] == typeDict['$complex$'] or types[1] == typeDict['$complex$']:
-        if len(types) >2:
-            val.argtypes = [ctypes.c_int for i in range(types[2])] +\
-                           [ctypeslib.ndpointer(dtype=types[0],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[1],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-
-                            ctypes.c_int, ctypes.c_uint]
-        else:
-            val.argtypes = [ctypes.c_int,
-                            ctypeslib.ndpointer(dtype=int, ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[0],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[1],
-                                                      flags='contiguous, '\
-                                                            'writeable,'\
-                                                            'aligned'),
-                            ctypes.c_int, ctypes.c_uint]
-    else:
-        if len(types) > 2:
-            val.argtypes = [ctypes.c_int for i in range(types[2])] +\
-                           [ctypeslib.ndpointer(dtype=types[0],
-                                                      ndim=types[2],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[1],
-                                                      ndim=types[2],
-                                                      flags='contiguous,'\
-                                                            'writeable, '\
-                                                            'aligned')] +\
-                            [ctypes.c_int for i in range(types[2])] +\
-                            [ctypes.c_uint]
-        else:
-            val.argtypes = [ctypes.c_int,
-                            ctypeslib.ndpointer(dtype=int,
-                                                      ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[0],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=types[1],
-                                                      flags='contiguous, '\
-                                                            'writeable, '\
-                                                            'aligned'),
-                            ctypeslib.ndpointer(dtype=int, ndim=1,
-                                                      flags='contiguous, '\
-                                                            'aligned'),
-                            ctypes.c_uint]
+    set_argtypes(val,types)
 
 #malloc and free
 lib.$libname$_malloc.restype = ctypes.c_void_p

@@ -1,3 +1,21 @@
+#   This file is part of PyFFTW.
+#
+#    Copyright (C) 2009 Jochen Schroeder
+#    Email: jschrod@berlios.de
+#
+#    PyFFTW is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    PyFFTW is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with PyFFTW.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 from numpy import typeDict
 import ctypes
@@ -98,6 +116,50 @@ def select(inarray,outarray):
         else:
             return getattr(lib, name), name, types
 
+def _create_complex2real_plan(inarray, outarray, flags):
+    """Internal function to create complex fft plan given an input and output
+    np array and the direction and flags integers"""
+    func, name, types = select(inarray,outarray)
+    #this is necessary because the r2c and c2r transforms always use the
+    #shape of the larger array (the real one)
+    if np.prod(inarray.shape) < np.prod(outarray.shape):
+        shape = outarray.shape
+    else:
+        shape = inarray.shape
+
+    if len(types) < 3:
+        plan = func(len(shape), np.asarray(shape, dtype=int),
+                    inarray, outarray,  flags)
+        if plan == None:
+            raise Exception, "Error creating $libname$ plan %s for the given "\
+                             "parameters" %name
+        else:
+            return plan, name
+    elif types[2] == 1:
+        plan = func(shape[0], inarray, outarray,  flags)
+        if plan == None:
+            raise Exception, "Error creating $libname$ plan %s for the given "\
+                             "parameters" %name
+        else:
+            return plan, name
+    elif types[2] == 2:
+        plan = func(shape[0], shape[1], inarray, outarray, flags)
+        if plan == None:
+            raise Exception, "Error creating $libname$ plan %s for the given "\
+                             "parameters" %name
+        else:
+            return plan, name
+    elif types[2] == 3:
+        plan = func(shape[0], shape[1], shape[2],inarray, outarray, flags)
+        if plan == None:
+            raise Exception, "Error creating $libname$ plan %s for the given "\
+                             "parameters" %name
+        else:
+            return plan, name
+    else:
+        raise ValueError, 'the dimensions are not correct'
+
+
 def _create_complex_plan(inarray, outarray, direction, flags):
     """Internal function to create complex fft plan given an input and output
     np array and the direction and flags integers"""
@@ -114,14 +176,14 @@ def _create_complex_plan(inarray, outarray, direction, flags):
                     np.asarray(shape, dtype=int),
                     inarray, outarray, direction, flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 1:
         plan = func(shape[0], inarray, outarray, direction, flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -129,7 +191,7 @@ def _create_complex_plan(inarray, outarray, direction, flags):
         plan = func(shape[0], shape[1], inarray, outarray,\
                     direction, flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -137,7 +199,7 @@ def _create_complex_plan(inarray, outarray, direction, flags):
         plan = func(shape[0], shape[1], shape[2],\
                     inarray, outarray, direction, flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -147,20 +209,21 @@ def _create_complex_plan(inarray, outarray, direction, flags):
 def _create_real_plan(inarray, outarray, realtype, flags):
     """Internal function to create real fft plan given an input and output 
     np array and the realtype and flags integers"""
+    if realtypes != None:
+        raise ValueError, "Two real input arrays but no realtype list given"
     func, name, types = select(inarray,outarray)
-
     if len(types) < 3:
         plan = func(len(inarray.shape), np.asarray(inarray.shape,dtype=int),\
              inarray, outarray, np.asarray(realtype), flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 1:
         plan = func(inarray.shape[0], inarray, outarray, realtype[0], flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -168,7 +231,7 @@ def _create_real_plan(inarray, outarray, realtype, flags):
         plan = func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
                     realtype[0], realtype[1], flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -177,7 +240,7 @@ def _create_real_plan(inarray, outarray, realtype, flags):
                     inarray, outarray, realtype[0], realtype[1], \
                     realtype[2], flags)
         if plan == None:
-            raise Exception, "Error creating fftw plan %s for the given "\
+            raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
@@ -188,13 +251,20 @@ def _create_plan(inarray, outarray, direction='forward', flags=['estimate'],
                 realtypes=None):
     """Internal function to create a complex fft plan given an input and output
     np array and the direction and flags integers"""
-    if realtypes != None:
-        return _create_real_plan(inarray,outarray,\
-                [realfft_type[r] for r in realtypes], _cal_flag_value(flags))
-    else:
-        return _create_complex_plan(inarray,outarray,\
-                                     fft_direction[direction],
+    if inarray.dtype == np.typeDict['$complex$'] and \
+                        outarray.dtype == np.typeDict['$complex$']:
+        return _create_complex_plan(inarray,outarray, fft_direction[direction],
                                      _cal_flag_value(flags))
+    elif inarray.dtype == np.typeDict['$complex$'] or \
+                          outarray.dtype == np.typeDict['$complex$']:
+        return _create_complex2real_plan(inarray,outarray, _cal_flag_value(flags))
+    elif inarray.dtype == np.typeDict['$float$'] and \
+                          outarray.dtype == np.typeDict['$float$']:
+        return _create_real_plan(inarray,outarray, \
+                                 [realfft_type[r] for r in realtypes],\
+                                 _cal_flag_value(flags))
+    else:
+        raise TypeError, "The input or output array has a dtype which is not supported"
 
 def _cal_flag_value(flags):
     """Calculate the integer flag value from a list of string flags"""

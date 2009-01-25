@@ -9,9 +9,16 @@ from numpy.fft import fft,ifft,fftshift
 import numpy as np
 from scipy.fftpack import fft as sfft, ifft as sifft
 from pylab import imread
+import fftw3.lib
+import fftw3l.lib
+import fftw3f.lib
+import fftw3.planning
+import fftw3l.planning
+import fftw3f.planning
 import os
 
 h = 0.01
+epsilon = 1e-5
 beta = 1
 N = 512
 libs = [fftw3, fftw3f, fftw3l]
@@ -48,8 +55,8 @@ def fftw_propagation(N,repeats,lib, dtype):
     f = np.linspace(-1/dt/2.,1/dt/2.,N)
     f = fftshift(f)
     t = fftshift(t)
-    farray = zeros(f.shape,dtype=dtype)
-    tarray = zeros(t.shape,dtype=dtype)
+    farray = np.zeros(f.shape,dtype=dtype)
+    tarray = np.zeros(t.shape,dtype=dtype)
     fftplan = lib.Plan(tarray,farray,'forward')
     ifftplan = lib.Plan(farray,tarray,'backward')
     farray[:] = 0
@@ -109,7 +116,7 @@ class ProductTestCase(unittest.TestCase):
 
     def testSelect(self):
         for lib in libs:
-            for plan in lib._typelist:
+            for plan in lib.lib._typelist:
                 if len(plan[1])>2:
                     plantype,(intype, outtype,length) = plan
                     shape = np.random.randint(2,5,length)
@@ -121,12 +128,12 @@ class ProductTestCase(unittest.TestCase):
                     length = len(shape)
                     inputa = np.zeros(shape=shape, dtype=intype)
                     outputa = np.zeros(shape=shape, dtype=outtype)
-                func, name, types = lib._select(inputa,outputa)
+                func, name, types = lib.planning.select(inputa,outputa)
                 self.failUnless(name == plantype, "%s: select returned a "\
                                 "wrong type for input array type=%s, output "\
                                 "array type=%s, and dimension = %d" \
                                     %(lib, inputa.dtype, outputa.dtype, length))
-                self.failUnless(func is getattr(lib.lib, plantype), "%s: "\
+                self.failUnless(func is getattr(lib.lib.lib, plantype), "%s: "\
                                 "wrong library function for type %s"\
                                                     %(lib,plantype))
 
@@ -154,36 +161,37 @@ class ProductTestCase(unittest.TestCase):
         epsilon = 1e-3
         times = []
         for Nn in Ns:
-            t,A,f,B, ti = fftw_propagation_aligned(Nn,repeats, fftw2, _complex[0])
-            ft,fA,ff,fB, fti = fftw_propagation_aligned(Nn,repeats, lib, _complex[0])
+            t,A,f,B, ti = fftw_propagation(Nn,repeats, fftw3, _complex[0])
+            ft,fA,ff,fB, fti = fftw_propagation_aligned(Nn,repeats, fftw3, _complex[0])
             nt,nA, nf, nB, nti = np_propagation(Nn,repeats, _complex[0])
             st,sA, sf, sB, sti = scipy_propagation(Nn,repeats, _complex[0])
-            times.append((fti, ti,nti, sti))
+            times.append((ti, fti,nti, sti))
             self.failUnless(sum(abs(A)**2-abs(nA)**2)< epsilon, "Propagation "\
                             "of fftw3 and numpy gives "\
                             "different results")
             self.failUnless(sum(abs(fA)**2-abs(nA)**2)< epsilon, "Propagation "\
                             "of aligned fftw3 and numpy gives "\
                             "different results")
-        print "Benchmark: %s" %lib
-        print "   N   fftw3 fftw3_aligned   numpy   scipy"
+        print     "Benchmark: %s" %fftw3
+        print     "N   fftw3  fftw3_aligned   numpy   scipy"
         for i in range(len(Ns)):
-            print "%5d  %5.2f  %5.2f  %5.2f   %5.2f" %(Ns[i],times[i][0],\
-                                                       times[i][1], \
-                                                       times[i][2], \
-                                                       times[i][3])
+            print "%5d  %5.2f    %5.2f      %5.2f   %5.2f" %(Ns[i],\
+                                                               times[i][0],\
+                                                               times[i][1], \
+                                                               times[i][2], \
+                                                               times[i][3])
 
     def test2D(self):
-        im = imread('einstein.png')
+        im = imread('Fourier2.png')
         im = im[:,:,1]
-        a = zeros(im.shape, dtype=im.dtype)
-        b = zeros(im.shape[0],im.shape[1]/2+1,dtype=np.typeDict['singlecomplex'])
+        a = np.zeros(im.shape, dtype=im.dtype)
+        b = np.zeros((im.shape[0],im.shape[1]/2+1),dtype=np.typeDict['singlecomplex'])
         p = fftw3f.Plan(a,b,'forward')
         ip = fftw3f.Plan(b,a,'backward')
         p()
         b/=np.prod(a.shape)
         ip()
-        self.failUnless(sum(a)-sum(im) < epsilon, "2D fft and ifft did not "\
+        self.failUnless(a.sum()-im.sum() < epsilon, "2D fft and ifft did not "\
                                                   "reproduce the same image")
 
 
