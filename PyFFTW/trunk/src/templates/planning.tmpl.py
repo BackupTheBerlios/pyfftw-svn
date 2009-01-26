@@ -18,8 +18,7 @@
 
 import numpy as np
 from numpy import typeDict
-import ctypes
-from lib import lib, _typelist, PyFile_AsFile
+from lib import lib, _typelist, PyFile_AsFile, PyBuffer_FromReadWriteMemory
 
 
 fftw_flags = {'measure':0,
@@ -385,15 +384,14 @@ class AlignedArray(np.ndarray):
     def __new__(cls, shape, dtype=typeDict['$complex$']):
         tmp = np.zeros(shape,dtype=dtype)
         p = lib.$libname$_malloc(tmp.nbytes)
-        b = (ctypes.c_byte*tmp.nbytes)(p)
+        b = PyBuffer_FromReadWriteMemory(p,tmp.nbytes)
         obj = np.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
         obj[:] = 0
         del tmp,b
-        obj.c_data = p
         return obj
 
     def __del__(self):
-        if hasattr(self, 'c_data'):
-            lib.$libname$_free(self.c_data)
+        if type(self.base) == buffer:
+            lib.$libname$_free(self.ctypes.data)
         else:
             pass

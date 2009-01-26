@@ -17,7 +17,7 @@
 #    along with PyFFTW.  If not, see <http://www.gnu.org/licenses/>.
 
 import ctypes
-from ctypes import pythonapi, util
+from ctypes import pythonapi, util, py_object
 from numpy import ctypeslib, typeDict
 
 
@@ -132,6 +132,11 @@ lib.$libname$_malloc.argtypes = [ctypes.c_int]
 lib.$libname$_free.restype = None
 lib.$libname$_free.argtypes = [ctypes.c_void_p]
 
+#create a buffer from memory (necessary for array allocation)
+PyBuffer_FromReadWriteMemory = pythonapi.PyBuffer_FromReadWriteMemory
+PyBuffer_FromReadWriteMemory.restype = py_object
+PyBuffer_FromReadWriteMemory.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
 #executing arrays
 lib.$libname$_execute.restype = None
 lib.$libname$_execute.argtypes = [ctypes.c_void_p]
@@ -149,6 +154,8 @@ lib.$libname$_destroy_plan.restype = None
 lib.$libname$_destroy_plan.argtypes = [ctypes.c_void_p]
 
 #wisdom
+
+# create c-file object from python
 PyFile_AsFile = pythonapi.PyFile_AsFile
 PyFile_AsFile.argtypes = [ctypes.py_object]
 PyFile_AsFile.restype = ctypes.c_void_p
