@@ -18,8 +18,7 @@
 
 import numpy as np
 from numpy import typeDict
-from lib import lib, _typelist, PyFile_AsFile, PyBuffer_FromReadWriteMemory
-
+from lib import lib, _typelist, PyFile_AsFile, PyBuffer_FromReadWriteMemory, lib_threads
 
 fftw_flags = {'measure':0,
               'destroy input': 1,
@@ -125,7 +124,7 @@ def _create_complex2real_plan(inarray, outarray, flags):
         shape = outarray.shape
     else:
         shape = inarray.shape
-
+    
     if len(types) < 3:
         plan = func(len(shape), np.asarray(shape, dtype=int),
                     inarray, outarray,  flags)
@@ -247,23 +246,29 @@ def _create_real_plan(inarray, outarray, realtype, flags):
         raise ValueError, 'the dimensions are not correct'
 
 def _create_plan(inarray, outarray, direction='forward', flags=['estimate'],
-                realtypes=None):
+                realtypes=None, nthreads=1):
     """Internal function to create a complex fft plan given an input and output
     np array and the direction and flags integers"""
+    if lib_threads is not None:
+        lib_threads.$libname$_plan_with_nthreads(nthreads)
+    elif nthreads > 1:
+        raise ValueError, "Cannot use more than 1 thread for non-threaded $libname$: %s" % (nthreads)
     if inarray.dtype == np.typeDict['$complex$'] and \
                         outarray.dtype == np.typeDict['$complex$']:
         return _create_complex_plan(inarray,outarray, fft_direction[direction],
                                      _cal_flag_value(flags))
     elif inarray.dtype == np.typeDict['$complex$'] or \
                           outarray.dtype == np.typeDict['$complex$']:
-        return _create_complex2real_plan(inarray,outarray, _cal_flag_value(flags))
+        return _create_complex2real_plan(inarray,outarray, 
+                                         _cal_flag_value(flags))
     elif inarray.dtype == np.typeDict['$float$'] and \
                           outarray.dtype == np.typeDict['$float$']:
         return _create_real_plan(inarray,outarray, \
                                  [realfft_type[r] for r in realtypes],\
                                  _cal_flag_value(flags))
     else:
-        raise TypeError, "The input or output array has a dtype which is not supported"
+        raise TypeError, "The input or output array has a dtype which is not supported by $libname$: %r, %r"\
+            % (inarray.dtype, outarray.dtype)
 
 def _cal_flag_value(flags):
     """Calculate the integer flag value from a list of string flags"""
@@ -296,7 +301,8 @@ class Plan(object):
         outarray    --  the output array
         """
     def __init__(self, inarray=None, outarray=None, direction='forward',
-                 flags=['estimate'], realtypes=None, create_plan=True):
+                 flags=['estimate'], realtypes=None, create_plan=True,
+                 nthreads = 1):
         """Initialize the fftw plan. 
         Parameters:
             inarray     --  array to be transformed (default=None)
@@ -313,11 +319,14 @@ class Plan(object):
                             needs to be given if both input and output
                             arrays are real (default=None)
             create_plan --  weather to actually create the plan (default=True)
+            nthreads    --  number of threads to be used by the plan,
+                            available only for threaded libraries (default=1)
             """
 
         self.flags = flags
         self.direction = direction
         self.realtypes = realtypes
+        self.nthreads = nthreads
         if create_plan:
             if inarray == None and outarray  == None:
                 raise 'Need at least one array to create the plan'
@@ -348,7 +357,8 @@ class Plan(object):
         self.plan, self.type_plan = _create_plan(inarray,outarray,
                                                  direction=self.direction,
                                                  flags=self.flags,
-                                                 realtypes=self.realtypes)
+                                                 realtypes=self.realtypes,
+                                                 nthreads=self.nthreads)
         self.shape = inarray.shape
         self.inarray = inarray
         self.outarray = outarray

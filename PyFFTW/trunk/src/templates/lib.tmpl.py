@@ -20,8 +20,14 @@ import ctypes
 from ctypes import pythonapi, util, py_object
 from numpy import ctypeslib, typeDict
 
+# must use ctypes.RTLD_GLOBAL for threading support
+ctypes._dlopen(util.find_library('$library$'), ctypes.RTLD_GLOBAL)
+lib = util.find_library('$library$')
+lib = ctypes.cdll.LoadLibrary(lib)
 
-lib = ctypes.cdll.LoadLibrary(util.find_library('$library$'))
+lib_threads = util.find_library('$library$_threads')
+if lib_threads is not None:
+    lib_threads = ctypes.cdll.LoadLibrary(lib_threads)
 
 _typelist =    [('$libname$_plan_dft_1d', (typeDict['$complex$'], typeDict['$complex$'], 1)),
                        ('$libname$_plan_dft_2d', (typeDict['$complex$'], typeDict['$complex$'], 2)),
@@ -152,6 +158,20 @@ lib.$libname$_execute_dft.argtypes = [ctypes.c_void_p,
 #destroy plans
 lib.$libname$_destroy_plan.restype = None
 lib.$libname$_destroy_plan.argtypes = [ctypes.c_void_p]
+
+#enable threading for plans
+if lib_threads is not None:
+    lib_threads.$libname$_init_threads.restype = ctypes.c_int
+    lib_threads.$libname$_init_threads.argtypes = []
+    lib_threads.$libname$_plan_with_nthreads.restype = None
+    lib_threads.$libname$_plan_with_nthreads.argtypes = [ctypes.c_int]
+    lib_threads.$libname$_cleanup_threads.restype = None
+    lib_threads.$libname$_cleanup_threads.argtypes = []
+
+    s = lib_threads.$libname$_init_threads()
+    if not s:
+        sys.stderr.write('$libname$_init_threads call failed, disabling threads support\n')
+        lib_threads = None
 
 #wisdom
 
