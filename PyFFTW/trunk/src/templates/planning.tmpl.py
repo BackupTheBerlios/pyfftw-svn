@@ -128,28 +128,28 @@ def _create_complex2real_plan(inarray, outarray, flags):
     if len(types) < 3:
         plan = func(len(shape), np.asarray(shape, dtype=int),
                     inarray, outarray,  flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 1:
         plan = func(shape[0], inarray, outarray,  flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 2:
         plan = func(shape[0], shape[1], inarray, outarray, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 3:
         plan = func(shape[0], shape[1], shape[2],inarray, outarray, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -173,14 +173,14 @@ def _create_complex_plan(inarray, outarray, direction, flags):
         plan = func(len(shape),
                     np.asarray(shape, dtype=int),
                     inarray, outarray, direction, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 1:
         plan = func(shape[0], inarray, outarray, direction, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -188,7 +188,7 @@ def _create_complex_plan(inarray, outarray, direction, flags):
     elif types[2] == 2:
         plan = func(shape[0], shape[1], inarray, outarray,\
                     direction, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -196,7 +196,7 @@ def _create_complex_plan(inarray, outarray, direction, flags):
     elif types[2] == 3:
         plan = func(shape[0], shape[1], shape[2],\
                     inarray, outarray, direction, flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -213,14 +213,14 @@ def _create_real_plan(inarray, outarray, realtype, flags):
     if len(types) < 3:
         plan = func(len(inarray.shape), np.asarray(inarray.shape,dtype=int),\
              inarray, outarray, np.asarray(realtype), flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
             return plan, name
     elif types[2] == 1:
         plan = func(inarray.shape[0], inarray, outarray, realtype[0], flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -228,7 +228,7 @@ def _create_real_plan(inarray, outarray, realtype, flags):
     elif types[2] == 2:
         plan = func(inarray.shape[0], inarray.shape[1], inarray, outarray,\
                     realtype[0], realtype[1], flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -237,7 +237,7 @@ def _create_real_plan(inarray, outarray, realtype, flags):
         plan = func(inarray.shape[0], inarray.shape[1],inarray.shape[2], \
                     inarray, outarray, realtype[0], realtype[1], \
                     realtype[2], flags)
-        if plan == None:
+        if plan is None:
             raise Exception, "Error creating $libname$ plan %s for the given "\
                              "parameters" %name
         else:
@@ -328,11 +328,11 @@ class Plan(object):
         self.realtypes = realtypes
         self.nthreads = nthreads
         if create_plan:
-            if inarray == None and outarray  == None:
+            if inarray is None and outarray is None:
                 raise 'Need at least one array to create the plan'
-            elif inarray == None:
+            elif outarray is None:
                 self.create_plan(inarray,inarray)
-            elif outarray == None:
+            elif inarray is None:
                 self.create_plan(outarray,outarray)
             else:
                 self.create_plan(inarray,outarray)
