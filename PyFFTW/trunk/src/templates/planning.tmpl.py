@@ -44,8 +44,20 @@ realfft_type = {'halfcomplex r2c':0,
 
 fft_direction = {'forward' : -1, 'backward': 1}
 
-def create_AlignedArray(shape, dtype=typeDict['$complex$']):
-    return AlignedArray(shape=shape,dtype=dtype)
+def create_aligned_array(shape, dtype=typeDict['$complex$'], boundary=16):
+    """Create an array which is aligned in memory
+
+    Parameters:
+        shape       --  the shape of the array 
+        dtype       --  the dtype of the array (default=typeDict['$complex$'])
+        boundary    --  the byte boundary to align to (default=16)
+    """
+    N = np.prod(shape)*np.array(1,dtype).nbytes
+    tmp = np.zeros(N+boundary, dtype=np.uint8)
+    address = tmp.__array_interface__['data'][0]
+    offset = (boundary - address % boundary)
+    return tmp [offset:offset + N].view(dtype=dtype).reshape(shape)
+
 
 def execute(plan):
     """Execute fftw-plan, i.e. perform Fourier transform on the arrays given
@@ -389,19 +401,3 @@ class Plan(object):
         unexpected behaviour and possibly python segfaulting
         """
         guru_execute_dft(self,inarray,outarray)
-
-class AlignedArray(np.ndarray):
-    def __new__(cls, shape, dtype=typeDict['$complex$']):
-        tmp = np.zeros(shape,dtype=dtype)
-        p = lib.$libname$_malloc(tmp.nbytes)
-        b = PyBuffer_FromReadWriteMemory(p,tmp.nbytes)
-        obj = np.ndarray.__new__(cls,shape=shape,buffer=b,dtype=dtype)
-        obj[:] = 0
-        del tmp,b
-        return obj
-
-    def __del__(self):
-        if type(self.base) == buffer:
-            lib.$libname$_free(self.ctypes.data)
-        else:
-            pass

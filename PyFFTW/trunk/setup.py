@@ -50,7 +50,7 @@ class build_from_templates(build_py):
 packages = check_libs(packages_0)
 
 setup(name='PyFFTW3',
-      version='0.1a.1',
+      version='0.2',
       description='Python bindings to the FFTW3 C-library',
       long_description='PyFFTW provide bindings to access the FFTW3 C-library (http://www.fftw.org) from Python',
       author='Jochen Schroeder',

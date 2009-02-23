@@ -33,8 +33,8 @@ def fftw_propagation_aligned(N,repeats, lib, dtype):
     f = np.linspace(-1/dt/2.,1/dt/2.,N)
     f = fftshift(f)
     t = fftshift(t)
-    farray = lib.AlignedArray(f.shape,dtype=dtype)
-    tarray = lib.AlignedArray(t.shape,dtype=dtype)
+    farray = lib.create_aligned_array(f.shape,dtype=dtype)
+    tarray = lib.create_aligned_array(t.shape,dtype=dtype)
     fftplan = lib.Plan(tarray,farray,'forward')
     ifftplan = lib.Plan(farray,tarray,'backward')
     farray[:] = 0
@@ -141,8 +141,8 @@ class ProductTestCase(unittest.TestCase):
         i=0
         for lib in libs:
             lib.forget_wisdom()
-            inputa = lib.AlignedArray(1024,np.typeDict[_complex[i]])
-            outputa = lib.AlignedArray(1024,np.typeDict[_complex[i]])
+            inputa = lib.create_aligned_array(1024,np.typeDict[_complex[i]])
+            outputa = lib.create_aligned_array(1024,np.typeDict[_complex[i]])
             plan = lib.Plan(inputa,outputa,flags=['patient'])
             soriginal = lib.export_wisdom_to_string()
             lib.import_wisdom_from_string(soriginal)

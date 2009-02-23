@@ -82,9 +82,8 @@ Aligned memory:
 On many platforms using the SIMD units for part of the floating point
 arithmetic significantly improves performance. FFTW can make use of the 
 SIMD operations, however the arrays have to be specifically aligned in memory.
-PyFFTW provides a numpy.ndarray subclass called AlignedArray which uses the 
-fftw_malloc to allocate the memory such that the memory is aligned for most
-efficient SIMD operations. Note that the same precautions as above apply, 
+PyFFTW provides a function which creates an numpy array which is aligned to 
+a specified boundary. In most circumstances the default alignment to 16 byte boundary is what you want. Note that the same precautions as above apply, 
 i.e. creating an aligned array and then doing something like a=a+1 will
 result in new memory allocated by python which might not be aligned.
 
@@ -101,7 +100,14 @@ interface is exposed.
 It is explicitly name guru_execute_dft. You should only use
 these if you know what you're doing, as no checking is done on these functions.
 
+Threads:
+It is possible to specify the number of threads to use for the fft functions,
+by supplying the keyword nthreads to the Plan-Class. Note that your arrays 
+have to be sufficiently large to yield a speedup on multicore hardware. In
+the case of small arrays the overhead for creating the threads is too large 
+resulting in slower execution times. You should therefore run some test. 
 
 Thanks:
 Finally I would like to the Matteo Frigo and Stephen G. Johnson for creating 
-the outstanding fftw3 library.
+the outstanding fftw3 library. I also would like to thank Pearu Peterson for
+writing the threading support.
