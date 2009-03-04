@@ -25,12 +25,16 @@ def create_source_from_template(tmplfile, outfile, lib, libname, _complex, _floa
 
 def check_libs(packages):
     for name in packages[:]:
-        try:
             lib = util.find_library(name)
-            lib = ctypes.cdll.LoadLibrary(lib)
-        except OSError, e:
-            warn("Not installing bindings for %s, because could not load the library: %s" % (name, e))
-            packages.remove(name)
+            if lib:
+                try:
+                    lib = ctypes.cdll.LoadLibrary(lib)
+                except OSError, e:
+                    warn("Not installing bindings for %s, because could not load the library: %s" % (name, e))
+                    packages.remove(name)
+            else:
+                warn("Not installing bindings for %s, because could not load the library: %s" % (name, e))
+                packages.remove(name)
     return packages
 
 class build_from_templates(build_py):
