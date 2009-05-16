@@ -22,11 +22,12 @@ from numpy import ctypeslib, typeDict
 from os.path import splitext, join
 from warnings import warn
 
+libfullpath = r'$libraryfullpath$'
+libname, ext = splitext(libfullpath)
 # must use ctypes.RTLD_GLOBAL for threading support
-ctypes._dlopen('$libraryfullpath$', ctypes.RTLD_GLOBAL)
-lib = ctypes.cdll.LoadLibrary('$libraryfullpath$')
+ctypes._dlopen(libfullpath, ctypes.RTLD_GLOBAL)
+lib = ctypes.cdll.LoadLibrary(libfullpath)
 
-libname, ext = splitext('$libraryfullpath$')
 lib_threads = libname + '_threads'+ ext
 try:
     lib_threads = ctypes.cdll.LoadLibrary(lib_threads)

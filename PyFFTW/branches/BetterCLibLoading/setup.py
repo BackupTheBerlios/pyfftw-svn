@@ -7,7 +7,7 @@ import ctypes
 from ctypes import util
 import os
 
-FFTW_PATH = '/usr/lib/'
+FFTW_PATH = r'/usr/lib/' # note windows paths need to be escaped
 packages_library_names = {'fftw3': 'libfftw3.so', 'fftw3f' : 'libfftw3f.so',
                           'fftw3l': 'libfftw3l.so'}
 
