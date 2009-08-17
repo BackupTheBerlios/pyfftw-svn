@@ -19,6 +19,7 @@
 import numpy as np
 from numpy import typeDict
 from lib import lib, _typelist, PyFile_AsFile, PyBuffer_FromReadWriteMemory, lib_threads
+from ctypes import byref, c_double
 
 fftw_flags = {'measure':0,
               'destroy input': 1,
@@ -401,3 +402,18 @@ class Plan(object):
         unexpected behaviour and possibly python segfaulting
         """
         guru_execute_dft(self,inarray,outarray)
+
+    def get_flops(self):
+        """Return an exact count of the number of floating-point additions,
+        multiplications, and fused multiply-add operations involved in
+        the plan's execution. The total number of floating-point
+        operations (flops) is add + mul + 2*fma, or add + mul + fma if
+        the hardware supports fused multiply-add instructions
+        (although the number of FMA operations is only approximate
+        because of compiler voodoo).
+        """
+        add = c_double(0)
+        mul = c_double(0)
+        fma = c_double(0)
+        lib.$libname$_flops(self, byref (add), byref (mul), byref (fma))
+        return add.value, mul.value, fma.value
