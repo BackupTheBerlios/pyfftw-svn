@@ -19,7 +19,6 @@ packages_0 = ['fftw3','fftw3f', 'fftw3l']
 
 def create_source_from_template(tmplfile, outfile, lib, libname, _complex,
                                 _float, location):
-    print location
     fp = open(tmplfile, 'r')
     tmpl = fp.read()
     fp.close()
@@ -37,12 +36,14 @@ def check_libs(packages):
         try:
             libpath = os.path.join(FFTW_PATH, packages_library_names[name])
             lib = ctypes.cdll.LoadLibrary(libpath)
+            print "found %s at %s" %(name, libpath)
         except OSError, e:
-            warn("%s is not located at %s trying util.find_library(%s)"
+            warn("%s is not located at %s, trying util.find_library(%s)"
                  %(name, libpath, name))
             try:
                 libpath = util.find_library(name)
                 lib = ctypes.cdll.LoadLibrary(libpath)
+                print "found %s at %s" %(name, libpath)
             except (TypeError,OSError), e:
                 warn("Not installing bindings for %s, because could not load\
                      the library: %s\n if you know the library is installed\
