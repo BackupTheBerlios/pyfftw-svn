@@ -46,6 +46,15 @@ _typelist =    [('$libname$_plan_dft_1d', (typeDict['$complex$'], typeDict['$com
                        ('$libname$_plan_r2r_3d', (typeDict['$float$'], typeDict['$float$'], 3)),
                        ('$libname$_plan_r2r', (typeDict['$float$'], typeDict['$float$']))]
 
+_adv_typelist = [('$libname$_plan_many_dft', (typeDict['$complex$'],
+                                              typeDict['$complex$'])),
+                  ('$libname$_plan_many_dft_c2r', (typeDict['$complex$'],
+                                                   typeDict['$float$'])),
+                  ('$libname$_plan_many_dft_r2c', (typeDict['$float$'],
+                                                   typeDict['$complex$'])),
+                  ('$libname$_plan_many_r2r', (typeDict['$float$'],
+                                                   typeDict['$float$']))]
+
 
 def set_argtypes(val, types):
     if types[0] == typeDict['$complex$'] and types[1] == typeDict['$complex$']:
@@ -124,6 +133,64 @@ def set_argtypes_r2r(val, types):
                                             flags='contiguous, aligned'),
                         ctypes.c_uint]
 
+def set_argtypes_adv(val, types):
+    if types[0] == typeDict['$complex$'] and types[1] == typeDict['$complex$']:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous,aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[1], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous,aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypes.c_int, ctypes.c_uint]
+    elif types[0] == typeDict['$complex$'] or types[1]==typeDict['$complex$']:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous,aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[1], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous,aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypes.c_uint]
+    elif types[0] == typeDict['$float$'] and types[1]==typeDict['$float$']:
+        val.argtypes = [ctypes.c_int, ctypeslib.ndpointer(dtype=int, ndim=1,
+                                                          flags='contiguous, '\
+                                                                'aligned'),
+                        ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[0], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous,aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=types[1], flags='contiguous,'\
+                                                                  'aligned,'\
+                                                                  'writeable'),
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous, aligned'),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypeslib.ndpointer(dtype=int, ndim=1,
+                                            flags='contiguous, aligned'),
+                        ctypes.c_uint]
+
 
 
 # set the return and argument types on the plan functions
@@ -131,6 +198,12 @@ for name, types in _typelist:
     val = getattr(lib, name)
     val.restype = ctypes.c_void_p
     set_argtypes(val,types)
+
+##do the same for advanced plans
+for name, types in _adv_typelist:
+    val = getattr(lib, name)
+    val.restype = ctypes.c_void_p
+    set_argtypes_adv(val,types)
 
 #malloc and free
 lib.$libname$_malloc.restype = ctypes.c_void_p
