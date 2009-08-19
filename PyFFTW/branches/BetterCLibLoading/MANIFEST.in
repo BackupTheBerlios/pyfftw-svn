@@ -1,6 +1,0 @@
-include README.txt
-include setup.py
-recursive-include src 
-recursive-include test
-include COPYING
-include AUTHORS

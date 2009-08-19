@@ -1,6 +1,0 @@
-* Add bindings to the advanced and guru methods
-* cleanup naming 
-* add a simple x=fft(y) like interface
-* add benchmarks
-* rewrite as a pure C-extension (worth it?)
-
