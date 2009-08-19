@@ -19,15 +19,27 @@
 import ctypes
 from ctypes import pythonapi, util, py_object
 from numpy import ctypeslib, typeDict
+from os import name as osname
+from os.path import splitext, join
+from warnings import warn
 
+libfullpath = r'$libraryfullpath$'
+libname, ext = splitext(libfullpath)
 # must use ctypes.RTLD_GLOBAL for threading support
-ctypes._dlopen(util.find_library('$library$'), ctypes.RTLD_GLOBAL)
-lib = util.find_library('$library$')
-lib = ctypes.cdll.LoadLibrary(lib)
+ctypes._dlopen(libfullpath, ctypes.RTLD_GLOBAL)
+lib = ctypes.cdll.LoadLibrary(libfullpath)
 
-lib_threads = util.find_library('$library$_threads')
-if lib_threads is not None:
+if osname == 'nt':
+    lib_threads = libname
+else:
+    lib_threads = libname + '_threads'+ ext
+try:
     lib_threads = ctypes.cdll.LoadLibrary(lib_threads)
+except OSError, e:
+    warn("Could not load threading library %s, threading support is disabled"
+         %lib_threads)
+    lib_threads = None
+
 
 _typelist =    [('$libname$_plan_dft_1d', (typeDict['$complex$'], typeDict['$complex$'], 1)),
                        ('$libname$_plan_dft_2d', (typeDict['$complex$'], typeDict['$complex$'], 2)),
