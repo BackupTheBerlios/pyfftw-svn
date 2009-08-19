@@ -193,9 +193,8 @@ class ProductTestCase(unittest.TestCase):
         p()
         b/=np.prod(a.shape)
         ip()
-        print a.sum()-im.sum()
-        #self.failUnless(a.sum()-im.sum() < epsilon, "2D fft and ifft did not "\
-        #                                          "reproduce the same image")
+        self.failUnless(a.sum()-im.sum() < epsilon, "2D fft and ifft did not "\
+                                                  "reproduce the same image")
 
 
 
