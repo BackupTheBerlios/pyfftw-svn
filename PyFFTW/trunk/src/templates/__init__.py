@@ -60,7 +60,8 @@ Usage:
     #perform a backward transformation
     >>>ifft() 
     
-    The planning functions expect aligned, contiguous input arrays of any shape. 
+    The planning functions expect aligned, contiguous input arrays of 
+    any shape. 
     Currently strides are not implemented. The dtype has to either be complex
     or double. If you want to perform ffts on single or longdouble precision
     arrays use the appropriate fftw3f or fftw3l module. FFTW overwrites the 
@@ -71,30 +72,32 @@ Usage:
     *IMPORTANT*
     -----------
 
-    Because the plan uses pointers to the data of the arrays you cannot perform
-    operations on the arrays that change the data pointer. Therefore
+    Because the plan uses pointers to the data of the arrays you cannot 
+    perform operations on the arrays that change the data pointer. Therefore
     
     >>>a = zeros(1024, dtype=complex)
     >>>p = plan(a,b)
     >>>a = a+10
     >>>p()
     
-    does not work, i.e. the a object references different memory, however the 
-    Fourier transform will be performed on the original memory (the plan actually 
-    contains a reference to the orgininal data (p.inarray), otherwise this 
-    operation could even result in a python segfault).
+    does not work, i.e. the a object references different memory, however 
+    the Fourier transform will be performed on the original memory (the 
+    plan actually contains a reference to the orgininal data (p.inarray), 
+    otherwise this operation could even result in a python segfault).
     
     Aligned memory:
     ---------------
     
     On many platforms using the SIMD units for part of the floating point
     arithmetic significantly improves performance. FFTW can make use of the 
-    SIMD operations, however the arrays have to be specifically aligned in memory.
-    PyFFTW provides a numpy.ndarray subclass called AlignedArray which uses the 
-    fftw_malloc to allocate the memory such that the memory is aligned for most
-    efficient SIMD operations. Note that the same precautions as above apply, 
-    i.e. creating an aligned array and then doing something like a=a+1 will
-    result in new memory allocated by python which might not be aligned.
+    SIMD operations, however the arrays have to be specifically aligned 
+    in memory. PyFFTW provides a function which creates an numpy array 
+    which is aligned to 
+    a specified boundary. In most circumstances the default alignment to 16 
+    byte boundary is what you want. Note that the same precautions as above     
+    apply, i.e. creating an aligned array and then doing something like 
+    a=a+1 will result in new memory allocated by python which might not 
+    be aligned.
     
     PyFFTW interface naming conventions:
     ------------------------------------
