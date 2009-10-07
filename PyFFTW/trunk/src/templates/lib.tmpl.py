@@ -24,7 +24,9 @@ from os.path import splitext, join
 from warnings import warn
 
 libfullpath = r'$libraryfullpath$'
-libname, ext = splitext(libfullpath)
+#libname, ext = splitext(libfullpath)
+libname = libfullpath.split('.')[0]
+ext ='.'+ '.'.join(libfullpath.split('.')[1:])
 # must use ctypes.RTLD_GLOBAL for threading support
 ctypes._dlopen(libfullpath, ctypes.RTLD_GLOBAL)
 lib = ctypes.cdll.LoadLibrary(libfullpath)

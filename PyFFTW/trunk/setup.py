@@ -35,6 +35,8 @@ def check_libs(packages):
     for name in packages[:]:
         try:
             libpath = os.path.join(FFTW_PATH, packages_library_names[name])
+            if libpath == None:
+                raise OSError
             lib = ctypes.cdll.LoadLibrary(libpath)
             print "found %s at %s" %(name, libpath)
         except OSError, e:
@@ -42,6 +44,8 @@ def check_libs(packages):
                  %(name, libpath, name))
             try:
                 libpath = util.find_library(name)
+                if libpath == None:
+                    raise OSError
                 lib = ctypes.cdll.LoadLibrary(libpath)
                 print "found %s at %s" %(name, libpath)
             except (TypeError,OSError), e:
