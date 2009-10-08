@@ -20,10 +20,14 @@ import ctypes
 from ctypes import pythonapi, util, py_object
 from numpy import ctypeslib, typeDict
 from os import name as osname
-from os.path import splitext, join
+from os.path import splitext, join, isfile, dirname
 from warnings import warn
 
 libfullpath = r'$libraryfullpath$'
+if not isfile(libfullpath) and osname=='nt':
+    if isfile(join(dirname(__file__), libfullpath)):
+        libfullpath = join(dirname(__file__), libfullpath)
+
 #libname, ext = splitext(libfullpath)
 libname = libfullpath.split('.')[0]
 ext ='.'+ '.'.join(libfullpath.split('.')[1:])

@@ -6,10 +6,26 @@ from distutils.command.build_py import build_py
 import ctypes
 from ctypes import util
 import os
+import sys
 
-FFTW_PATH = r'/usr/lib/' # note windows paths need to be escaped
-packages_library_names = {'fftw3': 'libfftw3.so', 'fftw3f' : 'libfftw3f.so',
-                          'fftw3l': 'libfftw3l.so'}
+package_data = {}
+if os.name=='nt':
+    # Assuming that the dll content of 
+    #  ftp://ftp.fftw.org/pub/fftw/fftw-3.2.2.pl1-dll32.zip
+    # is copied to the current working directory.
+    # FFTW_PATH should be either the final installation directory
+    # of the dll files or empty.
+    FFTW_PATH = r''
+    packages_library_names = {'fftw3': 'libfftw3-3.dll', 
+                              'fftw3f' : 'libfftw3f-3.dll',
+                              'fftw3l': 'libfftw3l-3.dll'}
+    for l, dll in packages_library_names.items():
+        s = os.path.join (FFTW_PATH, dll)
+        package_data[l] = [s]
+else:
+    FFTW_PATH = r'/usr/lib/'
+    packages_library_names = {'fftw3': 'libfftw3.so', 'fftw3f' : 'libfftw3f.so',
+                              'fftw3l': 'libfftw3l.so'}
 
 _complex_typedict = {'fftw3':'complex', 'fftw3f': 'singlecomplex', 'fftw3l': 'longcomplex'}
 _float_typedict = {'fftw3': 'double', 'fftw3f': 'single', 'fftw3l': 'longdouble'}
@@ -76,9 +92,8 @@ class build_from_templates(build_py):
                                                _float_typedict[package],
                                                liblocation[package])
 
-
 setup(name='PyFFTW3',
-      version='0.2',
+      version='0.2-svn',
       description='Python bindings to the FFTW3 C-library',
       long_description='PyFFTW provide bindings to access the FFTW3 C-library (http://www.fftw.org) from Python',
       author='Jochen Schroeder',
@@ -86,6 +101,7 @@ setup(name='PyFFTW3',
       url = 'pyfftw.berlios.de',
       packages=packages,
       package_dir = dict ([(n, 'src/templates') for n in packages]),
+      package_data = package_data,
       cmdclass = {"build_py": build_from_templates},
       license ='GPL v3'
      )
