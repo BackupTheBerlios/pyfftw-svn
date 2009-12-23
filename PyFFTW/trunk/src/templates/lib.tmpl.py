@@ -19,7 +19,7 @@
 import ctypes
 from ctypes import pythonapi, util, py_object
 from numpy import ctypeslib, typeDict
-from os import name as osname
+import platform.system as psystem
 from os.path import splitext, join, isfile, dirname
 from warnings import warn
 
@@ -35,7 +35,7 @@ ext ='.'+ '.'.join(libfullpath.split('.')[1:])
 ctypes._dlopen(libfullpath, ctypes.RTLD_GLOBAL)
 lib = ctypes.cdll.LoadLibrary(libfullpath)
 
-if osname == 'nt':
+if psystem() == 'Windows':
     lib_threads = libname
 else:
     lib_threads = libname + '_threads'+ ext
